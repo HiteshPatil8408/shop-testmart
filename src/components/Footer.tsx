@@ -10,7 +10,7 @@ export function Footer() {
             <span className="brand__mark">T</span>
             {APP_CONFIG.name}
           </Link>
-          <p>A safe, deterministic ecommerce environment for learning modern test automation.</p>
+          <p>A free, deterministic UI testing environment for modern test automation.</p>
         </div>
         <div>
           <h2>Shop</h2>

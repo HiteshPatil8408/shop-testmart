@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
+import { SITE_METADATA } from '../../shared/config';
 import { formatMoney } from '../../shared/lib/money';
 import type { Product } from '../../shared/types';
 import { useCart } from '../app/CartContext';
@@ -25,7 +26,12 @@ export function ProductPage() {
   const [infoTab, setInfoTab] = useState<'description' | 'specifications'>('description');
   const { add } = useCart();
   const toast = useToast();
-  useDocumentTitle(product?.name ?? 'Product');
+  useDocumentTitle(product?.name ?? 'Product', {
+    canonicalPath: `/products/${slug}`,
+    description: product?.shortDescription ?? SITE_METADATA.description,
+    image: product?.images[0],
+    noIndex: !result.loading && (!product || Boolean(result.error)),
+  });
   useEffect(() => {
     setImage(0);
     setVariantId(product?.variants[0]?.id ?? '');

@@ -546,7 +546,12 @@ p {
 }
 .hero__copy h1 {
   font-size: clamp(2.6rem, 6vw, 5rem);
-  margin-bottom: 20px;
+  margin-bottom: 12px;
+}
+.hero__slide-title {
+  color: var(--teal-700);
+  font-size: clamp(1.25rem, 2vw, 1.7rem);
+  margin-bottom: 14px;
 }
 .hero__copy > p:not(.eyebrow) {
   font-size: 1.12rem;
@@ -587,6 +592,49 @@ p {
   background: var(--teal-700);
   background-clip: content-box;
   width: 42px;
+}
+.testing-environment {
+  align-items: start;
+  display: grid;
+  gap: 64px;
+  grid-template-columns: minmax(0, 1.15fr) minmax(320px, 0.85fr);
+}
+.testing-environment__copy {
+  max-width: 720px;
+}
+.testing-environment__copy > p:not(.eyebrow) {
+  font-size: 1.05rem;
+}
+.testing-environment__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 28px;
+}
+.testing-environment__features {
+  background: var(--canvas);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  display: grid;
+  gap: 0;
+  list-style: none;
+  margin: 0;
+  padding: 12px 28px;
+}
+.testing-environment__features li {
+  display: grid;
+  gap: 3px;
+  padding: 18px 0;
+}
+.testing-environment__features li + li {
+  border-top: 1px solid var(--line);
+}
+.testing-environment__features strong {
+  color: var(--navy-950);
+}
+.testing-environment__features span {
+  color: var(--muted);
+  font-size: 0.9rem;
 }
 .section-heading {
   align-items: end;
@@ -2360,6 +2408,10 @@ input:disabled {
   }
   .hero__content > img {
     max-height: 300px;
+  }
+  .testing-environment {
+    gap: 32px;
+    grid-template-columns: 1fr;
   }
   .category-grid {
     grid-template-columns: repeat(2, 1fr);

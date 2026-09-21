@@ -12,6 +12,14 @@ export const APP_CONFIG = {
   expressShippingPaise: 24_900,
 } as const;
 
+export const SITE_METADATA = {
+  url: 'https://shop.testmart.workers.dev',
+  title: 'UI Testing Environment for QA Automation | TestMart',
+  description:
+    'Practice UI testing, end-to-end automation, accessibility checks and API validation in a safe, deterministic ecommerce testing environment.',
+  socialImage: '/images/products/aster-novabook-14-deep-navy-01.jpg',
+} as const;
+
 export const DEMO_SAFETY_NOTICE =
   'Demo application — do not enter real personal or payment information.';
 

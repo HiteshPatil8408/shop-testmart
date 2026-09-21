@@ -2,7 +2,7 @@ import { Link } from 'react-router-dom';
 import { useDocumentTitle } from '../hooks/useDocumentTitle';
 
 export function NotFoundPage() {
-  useDocumentTitle('Page not found');
+  useDocumentTitle('Page not found', { noIndex: true });
   return (
     <div className="page container">
       <div className="state-card not-found">

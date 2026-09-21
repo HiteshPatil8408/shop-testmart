@@ -5,7 +5,11 @@ import { useDocumentTitle } from '../hooks/useDocumentTitle';
 import { api, ApiError, jsonBody } from '../lib/api';
 
 export function ContactPage() {
-  useDocumentTitle('Contact');
+  useDocumentTitle('Contact form testing', {
+    canonicalPath: '/contact',
+    description:
+      'Practise dependent selects, client and server validation, pending states, error handling and successful form submission.',
+  });
   const [categories, setCategories] = useState<Category[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
   const [categoryId, setCategoryId] = useState('');

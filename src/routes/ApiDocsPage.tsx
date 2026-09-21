@@ -9,7 +9,11 @@ interface OpenApi {
 }
 
 export function ApiDocsPage() {
-  useDocumentTitle('API documentation');
+  useDocumentTitle('API documentation for test automation', {
+    canonicalPath: '/api-docs',
+    description:
+      'Explore the TestMart OpenAPI endpoints for authentication, catalogue, cart, checkout, orders and API test automation practice.',
+  });
   const [filter, setFilter] = useState('');
   const result = useAsync(async () => {
     if (import.meta.env.VITE_STATIC_PREVIEW === 'true')

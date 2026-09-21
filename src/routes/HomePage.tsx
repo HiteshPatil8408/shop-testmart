@@ -12,7 +12,7 @@ const slides = [
   {
     eyebrow: 'Fresh tools for focused work',
     title: 'Build your best setups',
-    body: 'Explore original tech essentials chosen for study, making and everyday momentum.',
+    body: 'Automate search, product, cart and checkout flows with stable data and realistic UI states.',
     image: '/images/laptop-teal.svg',
     href: '/products?featured=1',
     cta: 'Shop featured',
@@ -36,7 +36,7 @@ const slides = [
 ];
 
 export function HomePage() {
-  useDocumentTitle();
+  useDocumentTitle(undefined, { canonicalPath: '/' });
   const [slide, setSlide] = useState(0);
   const [paused, setPaused] = useState(false);
   const catalogue = useAsync(async () => {
@@ -67,7 +67,8 @@ export function HomePage() {
         <div className="container hero__content">
           <div className="hero__copy" aria-live="polite">
             <p className="eyebrow">{current.eyebrow}</p>
-            <h1>{current.title}</h1>
+            <h1>UI testing environment for QA automation</h1>
+            <h2 className="hero__slide-title">{current.title}</h2>
             <p>{current.body}</p>
             <Link className="button button--primary" to={current.href}>
               {current.cta}
@@ -104,6 +105,54 @@ export function HomePage() {
             →
           </button>
         </div>
+      </section>
+      <section
+        className="section container testing-environment"
+        id="testing-environment"
+        aria-labelledby="testing-environment-title"
+      >
+        <div className="testing-environment__copy">
+          <p className="eyebrow">Free automation playground</p>
+          <h2 id="testing-environment-title">
+            Practice realistic UI, API and accessibility testing
+          </h2>
+          <p>
+            TestMart is a public ecommerce UI testing environment built for repeatable automation.
+            Exercise registration, login, search, filters, responsive navigation, cart updates,
+            checkout, validation and error handling without using real customer or payment data.
+          </p>
+          <p>
+            Use it with Playwright, Cypress, Selenium or your preferred testing framework. Stable
+            products and documented test credentials make local experiments and CI pipelines easier
+            to reproduce.
+          </p>
+          <div className="testing-environment__actions">
+            <Link className="button button--primary" to="/api-docs">
+              Explore the test API
+            </Link>
+            <Link className="button button--secondary" to="/products">
+              Start a UI test flow
+            </Link>
+          </div>
+        </div>
+        <ul className="testing-environment__features" aria-label="Test automation capabilities">
+          <li>
+            <strong>Deterministic test data</strong>
+            <span>Predictable catalogue, pricing, stock and demo-account behaviour.</span>
+          </li>
+          <li>
+            <strong>Complete user journeys</strong>
+            <span>Authentication, search, cart, checkout, orders and contact forms.</span>
+          </li>
+          <li>
+            <strong>API and UI together</strong>
+            <span>Same-origin REST endpoints with OpenAPI documentation.</span>
+          </li>
+          <li>
+            <strong>Safe failure testing</strong>
+            <span>Simulated declines, latency, validation errors and server failures.</span>
+          </li>
+        </ul>
       </section>
       <section className="section container" aria-labelledby="categories-title">
         <div className="section-heading">

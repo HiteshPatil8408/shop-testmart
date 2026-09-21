@@ -34,9 +34,18 @@ export function CataloguePage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
   const [mobileFilters, setMobileFilters] = useState(false);
-  useDocumentTitle(
-    query ? `Search: ${query}` : activeCategory ? categoryNames[activeCategory] : 'All products',
-  );
+  const pageTitle = query
+    ? `Search: ${query}`
+    : activeCategory
+      ? categoryNames[activeCategory]
+      : 'All products';
+  useDocumentTitle(pageTitle, {
+    canonicalPath: category ? `/category/${category}` : '/products',
+    description: activeCategory
+      ? `Practise ecommerce UI testing with the ${categoryNames[activeCategory]?.toLowerCase() ?? activeCategory} catalogue, filters, sorting, product details and cart flows.`
+      : 'Explore deterministic products for practising ecommerce search, filters, sorting, product details and cart automation.',
+    noIndex: Boolean(query),
+  });
   const update = (name: string, value?: string, append = false) => {
     const next = new URLSearchParams(params);
     if (!append) next.delete(name);

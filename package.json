@@ -25,7 +25,10 @@
     "db:reset:local": "wrangler d1 execute testmart --local --file=seed/reset.sql && npm run db:seed:local",
     "deploy": "npm run build && wrangler deploy",
     "smoke:production": "node scripts/smoke-production.mjs",
-    "ci": "npm run format:check && npm run lint && npm run typecheck && npm test && npm run build"
+    "ci": "npm run format:check && npm run lint && npm run typecheck && npm test && npm run build",
+    "prebuild": "npm run seo:generate",
+    "prebuild:pages": "npm run seo:generate",
+    "seo:generate": "node scripts/generate-sitemap.mjs"
   },
   "dependencies": {
     "@cloudflare/vite-plugin": "^1.56.0",
