@@ -16,7 +16,7 @@ export default defineConfig({
     trace: 'retain-on-failure',
     screenshot: 'only-on-failure',
     video: 'retain-on-failure',
-    headless: false,
+    headless: Boolean(process.env.CI),
   },
   webServer: usesLocalServer
     ? {

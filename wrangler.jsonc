@@ -16,12 +16,6 @@
       "database_id": "c51ded47-d02f-4f4b-b51f-844cc0e9ffe1",
       "migrations_dir": "migrations",
     },
-    {
-      "binding": "testmart",
-      "database_name": "testmart",
-      "database_id": "c51ded47-d02f-4f4b-b51f-844cc0e9ffe1",
-      "remote": true,
-    },
   ],
   "vars": {
     "APP_ENV": "production",
