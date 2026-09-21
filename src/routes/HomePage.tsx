@@ -11,7 +11,7 @@ import { api } from '../lib/api';
 const slides = [
   {
     eyebrow: 'Fresh tools for focused work',
-    title: 'Build your best setup',
+    title: 'Build your best setups',
     body: 'Explore original tech essentials chosen for study, making and everyday momentum.',
     image: '/images/laptop-teal.svg',
     href: '/products?featured=1',

@@ -4,7 +4,7 @@ const demo = { email: 'tester@testmart.demo', password: 'Test@12345' };
 
 test('homepage and navigation', async ({ page }) => {
   await page.goto('/');
-  await expect(page.getByRole('heading', { name: 'Build your best setup' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Build your best setups' })).toBeVisible();
   await expect(page.getByRole('heading', { name: 'Shop by category' })).toBeVisible();
   await page.getByRole('link', { name: 'Laptops', exact: true }).first().click();
   await expect(page).toHaveURL(/category\/laptops/);
@@ -18,7 +18,7 @@ test('account and cart menus close outside, on Escape, and when switching', asyn
 
   await account.click();
   await expect(page.getByRole('link', { name: 'Sign in' })).toBeVisible();
-  await page.getByRole('heading', { name: 'Build your best setup' }).click();
+  await page.getByRole('heading', { name: 'Build your best setups' }).click();
   await expect(page.getByRole('link', { name: 'Sign in' })).toBeHidden();
   await expect(account).toHaveAttribute('aria-expanded', 'false');
 
