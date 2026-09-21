@@ -1,0 +1,32 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "shop",
+  "main": "worker/index.ts",
+  "compatibility_date": "2026-09-20",
+  "compatibility_flags": ["nodejs_compat"],
+  "assets": {
+    "binding": "ASSETS",
+    "not_found_handling": "single-page-application",
+    "run_worker_first": ["/api/*"],
+  },
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "testmart",
+      "database_id": "c51ded47-d02f-4f4b-b51f-844cc0e9ffe1",
+      "migrations_dir": "migrations",
+    },
+    {
+      "binding": "testmart",
+      "database_name": "testmart",
+      "database_id": "c51ded47-d02f-4f4b-b51f-844cc0e9ffe1",
+      "remote": true,
+    },
+  ],
+  "vars": {
+    "APP_ENV": "production",
+  },
+  "observability": {
+    "enabled": true,
+  },
+}
