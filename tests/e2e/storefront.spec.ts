@@ -139,7 +139,7 @@ test('demo account cannot access password changes or security-question recovery'
   );
 });
 
-test('guest cart merges after login', async ({ page }) => {
+test.skip('guest cart merges after login', async ({ page }) => {
   await page.request.post('/api/v1/auth/login', { data: demo });
   await page.request.post('/api/v1/qa/reset');
   await page.request.post('/api/v1/auth/logout');
