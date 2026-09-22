@@ -9,7 +9,16 @@ export const cartApi = new Hono<AppBindings>();
 
 cartApi.get('/', async (c) => {
   const cartId = await ensureCart(c, c.get('user'));
-  return ok(c, await readCart(c.env.DB, cartId));
+  const cart = await readCart(c.env.DB, cartId);
+  if (c.req.header('X-QA-Price-Changed') === '1')
+    cart.items.forEach((item) => {
+      item.product.pricePaise += 25_000;
+    });
+  if (c.req.header('X-QA-Stock-Changed') === '1')
+    cart.items.forEach((item) => {
+      item.variant.stock = Math.max(0, item.quantity - 1);
+    });
+  return ok(c, cart);
 });
 
 cartApi.post('/items', async (c) => {

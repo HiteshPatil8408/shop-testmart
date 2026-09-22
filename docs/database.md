@@ -4,6 +4,11 @@ TestMart uses Cloudflare D1 (SQLite) with foreign keys enabled. The initial migr
 [`migrations/0001_initial.sql`](../migrations/0001_initial.sql); deterministic catalogue and demo
 account data live in [`seed/seed.sql`](../seed/seed.sql).
 
+The advanced practice additions are introduced by
+[`migrations/0006_advanced_practice.sql`](../migrations/0006_advanced_practice.sql). The migration is
+additive: existing order rows gain nullable delivery/cancellation fields, while new review and admin
+fixture tables are created without replacing existing commerce records.
+
 ## Main relationships
 
 - `categories` → `products` → `product_images`, `product_variants`, and
@@ -19,6 +24,10 @@ account data live in [`seed/seed.sql`](../seed/seed.sql).
 - `payments` retain only method, test-card brand/last four, simulated reference, and status
 - `idempotency_keys` bind one request hash to one order for safe checkout retries
 - `contact_messages` persist only explicitly submitted demo form content
+- `product_reviews` belongs to a product and user, with one review per user/product; anonymous
+  seeded authors remain deterministic and `review_helpful_votes` enforces one vote per user/review
+- `admin_demo_orders` is an isolated practice fixture table; grid and board updates are intentionally
+  simulated in the browser session rather than changing customer order records
 
 All prices and totals are integer paise. Checkout reads current catalogue rows, validates variant
 stock, recalculates totals server-side, and commits the order, payment, snapshots, stock updates,
@@ -34,7 +43,9 @@ npm run db:reset:local
 
 `db:reset:local` deletes application rows in foreign-key-safe order and reapplies the deterministic
 seed. The in-app QA reset is narrower: it clears the current cart and restores stock for orders
-owned by the current user.
+owned by the current user. It also removes reviews and helpful votes owned by that user so review
+tests can start from the seeded baseline. The global local reset additionally restores all 24 admin
+fixtures and five seeded reviews.
 
 ## Remote lifecycle
 

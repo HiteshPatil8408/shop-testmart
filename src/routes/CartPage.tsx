@@ -4,7 +4,7 @@ import { useAuth } from '../app/AuthContext';
 import { useCart } from '../app/CartContext';
 import { useToast } from '../app/ToastContext';
 import { EmptyState } from '../components/Feedback';
-import { Modal } from '../components/Modal';
+import { ConfirmDialog } from '../components/ConfirmDialog';
 import { PriceSummary } from '../components/PriceSummary';
 import { useDocumentTitle } from '../hooks/useDocumentTitle';
 
@@ -15,6 +15,8 @@ export function CartPage() {
   const toast = useToast();
   const navigate = useNavigate();
   const [confirmClear, setConfirmClear] = useState(false);
+  const [removeItemId, setRemoveItemId] = useState<string | null>(null);
+  const itemToRemove = cart?.items.find((item) => item.id === removeItemId);
   if (loading)
     return (
       <div className="page-loader" role="status">
@@ -151,9 +153,8 @@ export function CartPage() {
                 <button
                   className="link-button"
                   type="button"
-                  onClick={() =>
-                    void remove(item.id).then(() => toast(`${item.product.name} removed.`, 'info'))
-                  }
+                  aria-label={`Remove ${item.product.name}`}
+                  onClick={() => setRemoveItemId(item.id)}
                 >
                   Remove
                 </button>
@@ -177,36 +178,40 @@ export function CartPage() {
       <Link className="back-link" to="/products">
         ← Continue shopping
       </Link>
-      <Modal
+      <ConfirmDialog
         open={confirmClear}
         title="Clear your cart?"
         onClose={() => setConfirmClear(false)}
-        actions={
-          <>
-            <button
-              className="button button--secondary"
-              type="button"
-              onClick={() => setConfirmClear(false)}
-            >
-              Keep items
-            </button>
-            <button
-              className="button button--danger"
-              type="button"
-              onClick={() =>
-                void clear().then(() => {
-                  setConfirmClear(false);
-                  toast('Cart cleared.', 'info');
-                })
-              }
-            >
-              Clear cart
-            </button>
-          </>
-        }
+        confirmLabel="Clear cart"
+        cancelLabel="Keep items"
+        destructive
+        successMessage="Your cart has been cleared."
+        onConfirm={async () => {
+          await clear();
+          toast('Cart cleared.', 'info');
+        }}
       >
         <p>This removes every item from this cart. You can add them again later.</p>
-      </Modal>
+      </ConfirmDialog>
+      <ConfirmDialog
+        open={Boolean(itemToRemove)}
+        title={`Remove ${itemToRemove?.product.name ?? 'item'}?`}
+        onClose={() => setRemoveItemId(null)}
+        confirmLabel="Remove item"
+        cancelLabel="Keep item"
+        destructive
+        successMessage="The item was removed from your cart."
+        onConfirm={async () => {
+          if (!itemToRemove) return;
+          await remove(itemToRemove.id);
+          toast(`${itemToRemove.product.name} removed.`, 'info');
+        }}
+      >
+        <p>
+          This removes {itemToRemove?.product.name} in {itemToRemove?.variant.colour} from your
+          cart.
+        </p>
+      </ConfirmDialog>
     </div>
   );
 }

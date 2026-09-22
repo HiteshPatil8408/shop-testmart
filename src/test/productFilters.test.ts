@@ -37,6 +37,7 @@ describe('product filters', () => {
       manufacturer: 'Kinetic Sound',
       category: 'headphones',
       categoryName: 'Headphones',
+      pricePaise: 2000000,
       rating: 3.8,
       stock: 0,
       keywords: ['wireless'],
@@ -61,5 +62,14 @@ describe('product filters', () => {
       }),
     ).toHaveLength(1);
     expect(applyProductFilters(products, { inStock: true })).toHaveLength(1);
+  });
+
+  it('applies integer-paise price boundaries and specification search', () => {
+    expect(
+      applyProductFilters(products, { minimumPrice: 4_000_000, maximumPrice: 5_000_000 }),
+    ).toHaveLength(1);
+    expect(applyProductFilters(products, { maximumPrice: 4_999_999 })).toHaveLength(1);
+    expect(applyProductFilters(products, { minimumPrice: 5_000_001 })).toHaveLength(0);
+    expect(applyProductFilters(products, { specification: '16 GB' })).toHaveLength(0);
   });
 });

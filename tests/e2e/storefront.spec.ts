@@ -48,9 +48,43 @@ test('filter and sort products with bookmarkable URL state', async ({ page }) =>
   await page.goto('/category/laptops');
   await page.getByLabel('Sort').selectOption('price_desc');
   await page.getByLabel('In stock only').click();
+  await page.getByLabel('Deep Navy').click();
   await expect(page).toHaveURL(/sort=price_desc/);
   await expect(page).toHaveURL(/inStock=1/);
+  await expect(page).toHaveURL(/colour=Deep\+Navy/);
+  await expect(page.getByRole('button', { name: /colour: Deep Navy/ })).toBeVisible();
+  await page.reload();
+  await expect(page.getByLabel('Deep Navy')).toBeChecked();
+  await page.goBack();
+  await expect(page.getByLabel('Deep Navy')).not.toBeChecked();
+  await page.goForward();
+  await expect(page.getByLabel('Deep Navy')).toBeChecked();
+  await page.getByRole('button', { name: /colour: Deep Navy/ }).click();
+  await expect(page).not.toHaveURL(/colour=/);
   await expect(page.getByTestId('product-grid').getByRole('article')).toHaveCount(6);
+});
+
+test('guest cart survives refresh and clear-cart confirmation returns focus', async ({ page }) => {
+  await page.request.delete('/api/v1/cart');
+  const product = (await (await page.request.get('/api/v1/products/aster-novabook-14')).json()).data
+    .product;
+  await page.request.post('/api/v1/cart/items', {
+    data: { productId: product.id, variantId: product.variants[0].id, quantity: 1 },
+  });
+  await page.goto('/cart');
+  await page.reload();
+  await expect(page.getByRole('heading', { name: 'NovaBook 14' })).toBeVisible();
+
+  const clear = page.getByRole('button', { name: 'Clear cart', exact: true });
+  await clear.click();
+  const dialog = page.getByRole('dialog', { name: 'Clear your cart?' });
+  await expect(dialog.getByRole('button', { name: 'Clear cart' })).toBeFocused();
+  await page.keyboard.press('Escape');
+  await expect(dialog).toBeHidden();
+  await expect(clear).toBeFocused();
+  await clear.click();
+  await dialog.getByRole('button', { name: 'Clear cart' }).click();
+  await expect(page.getByRole('heading', { name: 'Your cart is empty' })).toBeVisible();
 });
 
 test('open a product, change colour and add it to the cart', async ({ page }) => {
@@ -94,7 +128,10 @@ test('update and remove cart lines', async ({ page }) => {
   );
   await page.getByRole('button', { name: /Increase NovaBook 14 quantity/ }).click();
   await expect(page.getByLabel('Quantity for NovaBook 14')).toHaveValue('2');
-  await page.getByRole('button', { name: 'Remove' }).click();
+  await page.getByRole('button', { name: 'Remove NovaBook 14' }).click();
+  const removeDialog = page.getByRole('dialog', { name: 'Remove NovaBook 14?' });
+  await expect(removeDialog).toBeVisible();
+  await removeDialog.getByRole('button', { name: 'Remove item' }).click();
   await expect(page.getByRole('heading', { name: 'Your cart is empty' })).toBeVisible();
 });
 
@@ -139,7 +176,7 @@ test('demo account cannot access password changes or security-question recovery'
   );
 });
 
-test.skip('guest cart merges after login', async ({ page }) => {
+test('guest cart merges after login', async ({ page }) => {
   await page.request.post('/api/v1/auth/login', { data: demo });
   await page.request.post('/api/v1/qa/reset');
   await page.request.post('/api/v1/auth/logout');

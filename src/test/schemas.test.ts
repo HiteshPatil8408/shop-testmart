@@ -2,8 +2,12 @@ import { describe, expect, it } from 'vitest';
 import {
   cartItemSchema,
   changePasswordSchema,
+  adminBulkOrderUpdateSchema,
+  adminOrderUpdateSchema,
+  orderSchema,
   passwordSchema,
   registrationSchema,
+  reviewSchema,
   resetPasswordSchema,
 } from '../../shared/schemas';
 
@@ -83,5 +87,60 @@ describe('validation schemas', () => {
         confirmPassword: 'Strong@1234',
       }).success,
     ).toBe(false);
+  });
+
+  it('validates product review boundaries', () => {
+    expect(
+      reviewSchema.safeParse({
+        rating: 5,
+        title: 'Very good',
+        message: 'A detailed review with enough information for another demo shopper.',
+      }).success,
+    ).toBe(true);
+    expect(reviewSchema.safeParse({ rating: 0, title: 'Bad', message: 'Too short' }).success).toBe(
+      false,
+    );
+  });
+
+  it('validates delivery slots and admin status mutations', () => {
+    const address = {
+      label: 'Home',
+      firstName: 'Demo',
+      lastName: 'Tester',
+      phone: '+91 90000 00000',
+      street: '101 Test Lane',
+      city: 'Pune',
+      state: 'Maharashtra',
+      postalCode: '411001',
+      country: 'India',
+      isDefault: true,
+    };
+    expect(
+      orderSchema.safeParse({
+        address,
+        deliveryMethod: 'standard',
+        deliveryDate: '2026-10-10',
+        deliveryTimeSlot: '12:00-15:00',
+        payment: { type: 'wallet' },
+      }).success,
+    ).toBe(true);
+    expect(
+      orderSchema.safeParse({
+        address,
+        deliveryMethod: 'standard',
+        deliveryDate: 'not-a-date',
+        deliveryTimeSlot: 'overnight',
+        payment: { type: 'wallet' },
+      }).success,
+    ).toBe(false);
+    expect(adminOrderUpdateSchema.safeParse({ status: 'shipped' }).success).toBe(true);
+    expect(adminOrderUpdateSchema.safeParse({ status: 'lost' }).success).toBe(false);
+    expect(
+      adminBulkOrderUpdateSchema.safeParse({
+        ids: ['80000000-0000-4000-8000-000000000001'],
+        status: 'packed',
+      }).success,
+    ).toBe(true);
+    expect(adminBulkOrderUpdateSchema.safeParse({ ids: [], status: 'packed' }).success).toBe(false);
   });
 });

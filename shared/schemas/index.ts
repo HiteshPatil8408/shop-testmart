@@ -129,6 +129,8 @@ export const cartUpdateSchema = z.object({
 export const orderSchema = z.object({
   address: addressSchema,
   deliveryMethod: z.enum(['standard', 'express', 'pickup']),
+  deliveryDate: z.string().date().optional(),
+  deliveryTimeSlot: z.enum(['09:00-12:00', '12:00-15:00', '15:00-18:00']).optional(),
   payment: z.discriminatedUnion('type', [
     z.object({
       type: z.literal('card'),
@@ -140,4 +142,19 @@ export const orderSchema = z.object({
     z.object({ type: z.literal('cod') }),
     z.object({ type: z.literal('wallet') }),
   ]),
+});
+
+export const reviewSchema = z.object({
+  rating: z.number().int().min(1).max(5),
+  title: z.string().trim().min(4, 'Use at least 4 characters.').max(80),
+  message: z.string().trim().min(20, 'Use at least 20 characters.').max(1000),
+});
+
+export const adminOrderUpdateSchema = z.object({
+  status: z.enum(['confirmed', 'packed', 'shipped', 'out_for_delivery', 'delivered', 'cancelled']),
+});
+
+export const adminBulkOrderUpdateSchema = z.object({
+  ids: z.array(z.string().uuid()).min(1).max(100),
+  status: z.enum(['confirmed', 'packed', 'shipped', 'out_for_delivery', 'delivered', 'cancelled']),
 });

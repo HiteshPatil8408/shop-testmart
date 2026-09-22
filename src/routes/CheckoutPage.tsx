@@ -6,6 +6,8 @@ import { useAuth } from '../app/AuthContext';
 import { useCart } from '../app/CartContext';
 import { useToast } from '../app/ToastContext';
 import { PriceSummary } from '../components/PriceSummary';
+import { DeliveryScheduler, firstAvailableDeliveryDate } from '../components/DeliveryScheduler';
+import { useQa } from '../app/QaContext';
 import { useDocumentTitle } from '../hooks/useDocumentTitle';
 import { api, ApiError, jsonBody } from '../lib/api';
 
@@ -39,10 +41,17 @@ export function CheckoutPage() {
   const { user } = useAuth();
   const { cart, loading: cartLoading, refresh } = useCart();
   const toast = useToast();
+  const qa = useQa();
   const navigate = useNavigate();
   const [step, setStep] = useState(1);
   const [address, setAddress] = useState(emptyAddress);
   const [delivery, setDelivery] = useState<Delivery>('standard');
+  const [deliveryDate, setDeliveryDate] = useState(
+    () => sessionStorage.getItem('tm_checkout_date') || firstAvailableDeliveryDate(),
+  );
+  const [deliveryTimeSlot, setDeliveryTimeSlot] = useState(
+    () => sessionStorage.getItem('tm_checkout_slot') || '09:00-12:00',
+  );
   const [paymentType, setPaymentType] = useState<PaymentType>('card');
   const [cardholderName, setCardholderName] = useState('Demo Tester');
   const [cardNumber, setCardNumber] = useState('4111111111111111');
@@ -55,10 +64,12 @@ export function CheckoutPage() {
   const [confirmedItems, setConfirmedItems] = useState<CartItem[]>([]);
   const idempotencyKey = useMemo(() => crypto.randomUUID(), []);
   useEffect(() => {
-    void api<Address[]>('/addresses').then((items) => {
-      const selected = items.find((item) => item.isDefault) ?? items[0];
-      if (selected) setAddress(selected);
-    });
+    void api<Address[]>('/addresses')
+      .then((items) => {
+        const selected = items.find((item) => item.isDefault) ?? items[0];
+        if (selected) setAddress(selected);
+      })
+      .catch(() => undefined);
   }, []);
   useEffect(() => {
     if (!cartLoading && cart && !cart.items.length && step < 7)
@@ -67,6 +78,10 @@ export function CheckoutPage() {
   useEffect(() => {
     if (cart && !totals) setTotals(cart.totals);
   }, [cart, totals]);
+  useEffect(() => {
+    sessionStorage.setItem('tm_checkout_date', deliveryDate);
+    sessionStorage.setItem('tm_checkout_slot', deliveryTimeSlot);
+  }, [deliveryDate, deliveryTimeSlot]);
   const preview = async (nextDelivery = delivery) => {
     const result = await api<{ totals: CartTotals }>('/checkout/preview', {
       method: 'POST',
@@ -76,6 +91,14 @@ export function CheckoutPage() {
   };
   const next = async () => {
     setError('');
+    if (step === 4 && (!deliveryDate || !deliveryTimeSlot)) {
+      setError('Choose an available delivery date and time slot.');
+      return;
+    }
+    if (step === 4 && qa.dateSlotUnavailable && deliveryTimeSlot === '12:00-15:00') {
+      setError('That delivery slot just became unavailable. Choose another time.');
+      return;
+    }
     if (step === 4 || step === 5) {
       try {
         await preview();
@@ -108,7 +131,13 @@ export function CheckoutPage() {
       const result = await api<{ orderNumber: string }>('/orders', {
         method: 'POST',
         headers: { 'Idempotency-Key': idempotencyKey },
-        body: jsonBody({ address, deliveryMethod: delivery, payment }),
+        body: jsonBody({
+          address,
+          deliveryMethod: delivery,
+          deliveryDate,
+          deliveryTimeSlot,
+          payment,
+        }),
       });
       setConfirmedItems(cart?.items ?? []);
       setOrderNumber(result.orderNumber);
@@ -325,7 +354,13 @@ export function CheckoutPage() {
                       checked={delivery === value}
                       onChange={() => {
                         setDelivery(value);
-                        void preview(value);
+                        void preview(value).catch((reason) =>
+                          setError(
+                            reason instanceof Error
+                              ? reason.message
+                              : 'Unable to calculate totals.',
+                          ),
+                        );
                       }}
                     />
                     <span>
@@ -335,6 +370,13 @@ export function CheckoutPage() {
                   </label>
                 ))}
               </div>
+              <DeliveryScheduler
+                date={deliveryDate}
+                timeSlot={deliveryTimeSlot}
+                onDateChange={setDeliveryDate}
+                onTimeSlotChange={setDeliveryTimeSlot}
+                simulatedUnavailableSlot={qa.dateSlotUnavailable}
+              />
               <div className="checkout-actions">
                 <button
                   className="button button--secondary"
@@ -499,7 +541,15 @@ export function CheckoutPage() {
                 </article>
                 <article>
                   <h2>Method</h2>
-                  <p>{delivery}</p>
+                  <p>
+                    {delivery}
+                    <br />
+                    {new Intl.DateTimeFormat('en-IN', { dateStyle: 'medium' }).format(
+                      new Date(`${deliveryDate}T12:00:00`),
+                    )}
+                    <br />
+                    {deliveryTimeSlot}
+                  </p>
                 </article>
                 <article>
                   <h2>Payment</h2>

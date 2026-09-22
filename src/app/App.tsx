@@ -2,6 +2,7 @@ import { BrowserRouter, HashRouter, Route, Routes } from 'react-router-dom';
 import { Layout } from '../components/Layout';
 import { ProtectedRoute } from '../components/ProtectedRoute';
 import { AccountPage } from '../routes/AccountPage';
+import { AdminOrdersPage } from '../routes/AdminOrdersPage';
 import { ApiDocsPage } from '../routes/ApiDocsPage';
 import { CartPage } from '../routes/CartPage';
 import { CataloguePage } from '../routes/CataloguePage';
@@ -15,6 +16,8 @@ import { OrderDetailPage } from '../routes/OrderDetailPage';
 import { OrdersPage } from '../routes/OrdersPage';
 import { ProductPage } from '../routes/ProductPage';
 import { RegisterPage } from '../routes/RegisterPage';
+import { ReturnsPage } from '../routes/ReturnsPage';
+import { UiLabPage } from '../routes/UiLabPage';
 import { AuthProvider } from './AuthContext';
 import { CartProvider } from './CartContext';
 import { QaProvider } from './QaContext';
@@ -38,6 +41,7 @@ export function App() {
                   <Route path="cart" element={<CartPage />} />
                   <Route path="contact" element={<ContactPage />} />
                   <Route path="api-docs" element={<ApiDocsPage />} />
+                  <Route path="ui-lab" element={<UiLabPage />} />
                   <Route path="login" element={<LoginPage />} />
                   <Route path="register" element={<RegisterPage />} />
                   <Route path="forgot-password" element={<ForgotPasswordPage />} />
@@ -47,6 +51,8 @@ export function App() {
                     <Route path="checkout" element={<CheckoutPage />} />
                     <Route path="orders" element={<OrdersPage />} />
                     <Route path="orders/:orderNumber" element={<OrderDetailPage />} />
+                    <Route path="returns" element={<ReturnsPage />} />
+                    <Route path="admin/orders" element={<AdminOrdersPage />} />
                   </Route>
                   <Route path="*" element={<NotFoundPage />} />
                 </Route>

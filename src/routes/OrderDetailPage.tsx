@@ -1,7 +1,11 @@
+import { useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { formatMoney } from '../../shared/lib/money';
 import type { OrderSummary } from '../../shared/types';
 import { ErrorState } from '../components/Feedback';
+import { ConfirmDialog } from '../components/ConfirmDialog';
+import { OrderTracking } from '../components/OrderTracking';
+import { useToast } from '../app/ToastContext';
 import { useAsync } from '../hooks/useAsync';
 import { useDocumentTitle } from '../hooks/useDocumentTitle';
 import { api } from '../lib/api';
@@ -18,6 +22,9 @@ export function OrderDetailPage() {
   const { orderNumber = '' } = useParams();
   useDocumentTitle(`Order ${orderNumber}`);
   const result = useAsync(() => api<DetailedOrder>(`/orders/${orderNumber}`), [orderNumber]);
+  const [cancelOpen, setCancelOpen] = useState(false);
+  const [cancelled, setCancelled] = useState(false);
+  const toast = useToast();
   if (result.loading)
     return (
       <div className="page-loader">
@@ -31,6 +38,7 @@ export function OrderDetailPage() {
       </div>
     );
   const order = result.data;
+  const displayedStatus = cancelled ? 'cancelled' : order.status;
   return (
     <div className="page container">
       <nav className="breadcrumbs" aria-label="Breadcrumb">
@@ -55,7 +63,21 @@ export function OrderDetailPage() {
             )}
           </p>
         </div>
-        <span className="badge badge--large">{order.status}</span>
+        <div className="button-row">
+          <span className="badge badge--large">{displayedStatus}</span>
+          {['confirmed', 'packed'].includes(displayedStatus) && (
+            <button
+              className="button button--danger"
+              type="button"
+              onClick={() => setCancelOpen(true)}
+            >
+              Cancel demo order
+            </button>
+          )}
+          <Link className="button button--secondary" to="/returns">
+            Start a return
+          </Link>
+        </div>
       </div>
       <div className="order-detail-grid">
         <section className="order-detail-items">
@@ -89,6 +111,15 @@ export function OrderDetailPage() {
           <p>
             <strong>Method:</strong> {order.deliveryMethod}
           </p>
+          {order.deliveryDate && (
+            <p>
+              <strong>Scheduled:</strong>{' '}
+              {new Intl.DateTimeFormat('en-IN', { dateStyle: 'long' }).format(
+                new Date(`${order.deliveryDate}T12:00:00`),
+              )}
+              {order.deliveryTimeSlot ? ` · ${order.deliveryTimeSlot}` : ''}
+            </p>
+          )}
           <h2>Payment</h2>
           <p>
             Status: <span className="badge">{order.paymentStatus}</span>
@@ -113,6 +144,22 @@ export function OrderDetailPage() {
           </dl>
         </aside>
       </div>
+      {displayedStatus !== 'cancelled' && <OrderTracking orderNumber={order.orderNumber} />}
+      <ConfirmDialog
+        open={cancelOpen}
+        title="Cancel this demo order?"
+        onClose={() => setCancelOpen(false)}
+        confirmLabel="Cancel order"
+        destructive
+        successMessage="The demo order was cancelled."
+        onConfirm={async () => {
+          await api(`/orders/${order.orderNumber}/cancel`, { method: 'POST' });
+          setCancelled(true);
+          toast('Demo order cancelled.', 'info');
+        }}
+      >
+        <p>The order status will change to cancelled. No real shipment or refund exists.</p>
+      </ConfirmDialog>
     </div>
   );
 }

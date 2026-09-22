@@ -37,6 +37,18 @@ export const qaSimulation: MiddlewareHandler<AppBindings> = async (c, next) => {
     !c.req.path.includes('/auth/login')
   )
     return fail(c, 401, 'SESSION_EXPIRED', 'QA Lab simulated an expired session.');
+  if (
+    c.req.header('X-QA-Expired-Cart') === '1' &&
+    (c.req.path.endsWith('/cart') || c.req.path.includes('/checkout'))
+  )
+    return fail(c, 409, 'CART_EXPIRED', 'QA Lab simulated an expired cart.');
+  if (
+    c.req.header('X-QA-Server-Validation') === '1' &&
+    ['POST', 'PUT', 'PATCH'].includes(c.req.method)
+  )
+    return fail(c, 422, 'SERVER_VALIDATION', 'QA Lab simulated a server validation response.', {
+      form: 'Review this deterministic server validation error.',
+    });
   const forced = Number(c.req.header('X-QA-Force-Status'));
   if ([400, 401, 403, 404, 409, 429, 500].includes(forced)) {
     return fail(c, forced as 400, `QA_FORCED_${forced}`, `QA Lab forced a ${forced} response.`);

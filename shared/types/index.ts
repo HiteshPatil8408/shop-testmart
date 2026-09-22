@@ -99,6 +99,8 @@ export interface OrderSummary {
   paymentStatus: string;
   totalPaise: number;
   createdAt: string;
+  deliveryDate?: string | null;
+  deliveryTimeSlot?: string | null;
   items: Array<{
     id: string;
     productName: string;
@@ -108,6 +110,50 @@ export interface OrderSummary {
     unitPricePaise: number;
     image: string;
   }>;
+}
+
+export type OrderStatus = 'confirmed' | 'packed' | 'shipped' | 'out_for_delivery' | 'delivered';
+
+export interface AdminOrder {
+  id: string;
+  orderNumber: string;
+  customerName: string;
+  customerEmail: string;
+  status: OrderStatus | 'cancelled';
+  paymentStatus: 'paid' | 'pending' | 'refunded';
+  totalPaise: number;
+  itemCount: number;
+  orderDate: string;
+  channel: 'web' | 'mobile' | 'support';
+  priority: 'normal' | 'priority';
+}
+
+export interface ProductReview {
+  id: string;
+  productId: string;
+  authorName: string;
+  rating: number;
+  title: string;
+  message: string;
+  helpfulCount: number;
+  helpfulByMe: boolean;
+  isOwn: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface ReviewSummary {
+  average: number;
+  total: number;
+  byRating: Record<1 | 2 | 3 | 4 | 5, number>;
+}
+
+export interface TrackingEvent {
+  id: string;
+  sequence: number;
+  status: OrderStatus;
+  label: string;
+  occurredAt: string;
 }
 
 export interface ApiSuccess<T> {

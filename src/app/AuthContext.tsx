@@ -28,6 +28,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       const result = await api<{ user: User | null }>('/auth/session');
       setUser(result.user);
+    } catch {
+      setUser(null);
     } finally {
       setLoading(false);
     }

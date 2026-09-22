@@ -9,6 +9,27 @@ export function QaPanel() {
   const qa = useQa();
   const { refresh } = useCart();
   const toast = useToast();
+  const simulations = [
+    ['emptySearch', 'Empty search results'],
+    ['lowStock', 'Low-stock catalogue state'],
+    ['paymentDecline', 'Payment decline'],
+    ['sessionExpiry', 'Session expiry'],
+    ['offline', 'Offline UI'],
+    ['uploadFailure', 'Upload failure'],
+    ['slowUpload', 'Slow upload'],
+    ['reviewSubmissionFailure', 'Review submission failure'],
+    ['duplicateSubmission', 'Duplicate submission'],
+    ['serverValidation', 'Server validation response'],
+    ['orderEventDelay', 'Order event delay'],
+    ['orderEventDisconnection', 'Order event disconnection'],
+    ['optimisticUpdateRejection', 'Optimistic-update rejection'],
+    ['emptyTable', 'Empty order table'],
+    ['largeDataset', 'Large order dataset'],
+    ['expiredCart', 'Expired cart'],
+    ['priceChanged', 'Price changed after cart add'],
+    ['stockChanged', 'Stock changed after cart add'],
+    ['dateSlotUnavailable', 'Date slot becomes unavailable'],
+  ] as const;
   return (
     <div className={open ? 'qa-panel is-open' : 'qa-panel'} data-testid="qa-controls">
       <button
@@ -56,46 +77,31 @@ export function QaPanel() {
               ))}
             </select>
           </label>
-          <label className="check-row">
-            <input
-              type="checkbox"
-              checked={qa.emptySearch}
-              onChange={(event) => qa.set({ emptySearch: event.target.checked })}
-            />{' '}
-            Empty search results
+          <label>
+            Failure duration
+            <select
+              value={qa.failureMode}
+              onChange={(event) =>
+                qa.set({ failureMode: event.target.value as 'once' | 'persistent' })
+              }
+            >
+              <option value="once">One-time failure</option>
+              <option value="persistent">Persistent failure</option>
+            </select>
           </label>
-          <label className="check-row">
-            <input
-              type="checkbox"
-              checked={qa.lowStock}
-              onChange={(event) => qa.set({ lowStock: event.target.checked })}
-            />{' '}
-            Low-stock catalogue state
-          </label>
-          <label className="check-row">
-            <input
-              type="checkbox"
-              checked={qa.paymentDecline}
-              onChange={(event) => qa.set({ paymentDecline: event.target.checked })}
-            />{' '}
-            Payment decline
-          </label>
-          <label className="check-row">
-            <input
-              type="checkbox"
-              checked={qa.sessionExpiry}
-              onChange={(event) => qa.set({ sessionExpiry: event.target.checked })}
-            />{' '}
-            Session expiry
-          </label>
-          <label className="check-row">
-            <input
-              type="checkbox"
-              checked={qa.offline}
-              onChange={(event) => qa.set({ offline: event.target.checked })}
-            />{' '}
-            Offline UI
-          </label>
+          <details className="qa-panel__simulations" open>
+            <summary>Scenario simulations</summary>
+            {simulations.map(([key, label]) => (
+              <label className="check-row" key={key}>
+                <input
+                  type="checkbox"
+                  checked={qa[key]}
+                  onChange={(event) => qa.set({ [key]: event.target.checked })}
+                />{' '}
+                {label}
+              </label>
+            ))}
+          </details>
           <div className="button-row">
             <button className="button button--secondary" type="button" onClick={qa.reset}>
               Clear simulations

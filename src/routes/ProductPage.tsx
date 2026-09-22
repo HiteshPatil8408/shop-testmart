@@ -8,6 +8,7 @@ import { useToast } from '../app/ToastContext';
 import { EmptyState, ErrorState } from '../components/Feedback';
 import { ProductCard } from '../components/ProductCard';
 import { Rating } from '../components/Rating';
+import { ReviewSection } from '../components/ReviewSection';
 import { useAsync } from '../hooks/useAsync';
 import { useDocumentTitle } from '../hooks/useDocumentTitle';
 import { api } from '../lib/api';
@@ -269,6 +270,7 @@ export function ProductPage() {
           </div>
         )}
       </section>
+      <ReviewSection productId={product.id} />
       {!!result.data?.related.length && (
         <section className="section related">
           <div className="section-heading">

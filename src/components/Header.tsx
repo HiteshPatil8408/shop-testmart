@@ -12,6 +12,7 @@ const nav = [
   ['Tablets', '/category/tablets'],
   ['Audio', '/category/headphones'],
   ['Contact', '/contact'],
+  ['UI Lab', '/ui-lab'],
 ];
 
 export function Header() {
@@ -110,12 +111,18 @@ export function Header() {
                     <Link to="/orders" onClick={() => setOpenMenu(null)}>
                       Order history
                     </Link>
+                    <Link to="/returns" onClick={() => setOpenMenu(null)}>
+                      Returns & attachments
+                    </Link>
+                    <Link to="/admin/orders" onClick={() => setOpenMenu(null)}>
+                      Demo order management
+                    </Link>
                     <button
                       type="button"
                       onClick={() => {
                         setOpenMenu(null);
                         navigate('/', { replace: true });
-                        void logout();
+                        void logout().catch(() => undefined);
                       }}
                     >
                       Sign out

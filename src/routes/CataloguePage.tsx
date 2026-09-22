@@ -22,62 +22,31 @@ const categoryNames: Record<string, string> = {
   mice: 'Mice',
 };
 
-export function CataloguePage() {
-  const { category } = useParams();
-  const location = useLocation();
-  const navigate = useNavigate();
-  const params = useMemo(() => new URLSearchParams(location.search), [location.search]);
+const filterKeys = ['category', 'minPrice', 'maxPrice', 'colour', 'inStock', 'rating', 'spec'];
+
+function FilterControls({
+  category,
+  params,
+  onUpdate,
+  onColours,
+  onClear,
+}: {
+  category?: string;
+  params: URLSearchParams;
+  onUpdate: (name: string, value?: string) => void;
+  onColours: (values: string[]) => void;
+  onClear: () => void;
+}) {
   const activeCategory = category ?? params.get('category') ?? '';
-  const query = params.get('q') ?? '';
-  const [products, setProducts] = useState<Product[]>([]);
-  const [meta, setMeta] = useState<PageMeta>({ page: 1, pageSize: 12, total: 0, pages: 0 });
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<Error | null>(null);
-  const [mobileFilters, setMobileFilters] = useState(false);
-  const pageTitle = query
-    ? `Search: ${query}`
-    : activeCategory
-      ? categoryNames[activeCategory]
-      : 'All products';
-  useDocumentTitle(pageTitle, {
-    canonicalPath: category ? `/category/${category}` : '/products',
-    description: activeCategory
-      ? `Practise ecommerce UI testing with the ${categoryNames[activeCategory]?.toLowerCase() ?? activeCategory} catalogue, filters, sorting, product details and cart flows.`
-      : 'Explore deterministic products for practising ecommerce search, filters, sorting, product details and cart automation.',
-    noIndex: Boolean(query),
-  });
-  const update = (name: string, value?: string, append = false) => {
-    const next = new URLSearchParams(params);
-    if (!append) next.delete(name);
-    if (value) {
-      if (append) next.append(name, value);
-      else next.set(name, value);
-    }
-    if (name !== 'page') next.delete('page');
-    navigate(`${location.pathname}?${next.toString()}`);
-  };
-  const fetchProducts = async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const apiParams = new URLSearchParams(params);
-      if (category) apiParams.set('category', category);
-      const body = await apiEnvelope<Product[]>(`/products?${apiParams}`);
-      setProducts(body.data);
-      setMeta(body.meta.pagination as PageMeta);
-    } catch (reason) {
-      setError(reason instanceof Error ? reason : new Error('Unable to load products.'));
-    } finally {
-      setLoading(false);
-    }
-  };
-  useEffect(() => void fetchProducts(), [location.search, category]); // eslint-disable-line react-hooks/exhaustive-deps
   const colours = params.getAll('colour');
-  const filters = (
+  const minimum = Number(params.get('minPrice') || 0);
+  const maximum = Number(params.get('maxPrice') || 150000);
+  const invalidPrice = minimum < 0 || maximum < 1000 || minimum > maximum;
+  return (
     <div className="filters__body">
       <div className="filter-heading">
         <h2>Filters</h2>
-        <button type="button" onClick={() => navigate(location.pathname)}>
+        <button type="button" onClick={onClear}>
           Clear all
         </button>
       </div>
@@ -86,7 +55,7 @@ export function CataloguePage() {
           Category
           <select
             value={activeCategory}
-            onChange={(event) => update('category', event.target.value)}
+            onChange={(event) => onUpdate('category', event.target.value)}
           >
             <option value="">All categories</option>
             {Object.entries(categoryNames).map(([value, label]) => (
@@ -97,48 +66,77 @@ export function CataloguePage() {
           </select>
         </label>
       )}
-      <fieldset>
+      <fieldset aria-describedby={invalidPrice ? 'price-filter-error' : undefined}>
         <legend>Price range</legend>
-        <label>
-          Minimum price
-          <input
-            type="number"
-            min="0"
-            step="500"
-            value={params.get('minPrice') ?? ''}
-            onChange={(event) => update('minPrice', event.target.value)}
+        <div className="price-filter-values">
+          <label>
+            Minimum price
+            <input
+              type="number"
+              min="0"
+              max="150000"
+              step="500"
+              value={params.get('minPrice') ?? ''}
+              placeholder="₹0"
+              aria-invalid={invalidPrice}
+              onChange={(event) => onUpdate('minPrice', event.target.value)}
+            />
+          </label>
+          <label>
+            Maximum price
+            <input
+              type="number"
+              min="1000"
+              max="150000"
+              step="500"
+              value={params.get('maxPrice') ?? ''}
+              placeholder="₹1,50,000"
+              aria-invalid={invalidPrice}
+              onChange={(event) => onUpdate('maxPrice', event.target.value)}
+            />
+          </label>
+        </div>
+        <div className="dual-range" aria-hidden="true">
+          <span
+            style={{
+              left: `${(minimum / 150000) * 100}%`,
+              right: `${100 - (maximum / 150000) * 100}%`,
+            }}
           />
-        </label>
-        <label>
-          Maximum price
-          <input
-            type="range"
-            min="1000"
-            max="150000"
-            step="1000"
-            value={params.get('maxPrice') ?? '150000'}
-            onChange={(event) => update('maxPrice', event.target.value)}
-          />
-          <span>Up to ₹{Number(params.get('maxPrice') ?? 150000).toLocaleString('en-IN')}</span>
-        </label>
+        </div>
+        <small>
+          ₹{minimum.toLocaleString('en-IN')} – ₹{maximum.toLocaleString('en-IN')}
+        </small>
+        {invalidPrice && (
+          <span className="field-error" id="price-filter-error">
+            Minimum price cannot exceed maximum price.
+          </span>
+        )}
       </fieldset>
       <fieldset>
         <legend>Colour</legend>
-        {['Deep Navy', 'Sunset Coral', 'Graphite', 'Warm Silver'].map((colour) => (
+        {[
+          'Deep Navy',
+          'Warm Silver',
+          'Lagoon Teal',
+          'Sunset Coral',
+          'Night Navy',
+          'Harbour Blue',
+          'Terracotta',
+          'Graphite',
+          'Mist Silver',
+        ].map((colour) => (
           <label className="check-row" key={colour}>
             <input
               type="checkbox"
               checked={colours.includes(colour)}
-              onChange={(event) => {
-                const next = new URLSearchParams(params);
-                next.delete('colour');
-                const selected = event.target.checked
-                  ? [...colours, colour]
-                  : colours.filter((item) => item !== colour);
-                selected.forEach((item) => next.append('colour', item));
-                next.delete('page');
-                navigate(`${location.pathname}?${next}`);
-              }}
+              onChange={(event) =>
+                onColours(
+                  event.target.checked
+                    ? [...colours, colour]
+                    : colours.filter((item) => item !== colour),
+                )
+              }
             />
             {colour}
           </label>
@@ -148,7 +146,7 @@ export function CataloguePage() {
         <input
           type="checkbox"
           checked={params.get('inStock') === '1'}
-          onChange={(event) => update('inStock', event.target.checked ? '1' : '')}
+          onChange={(event) => onUpdate('inStock', event.target.checked ? '1' : '')}
         />{' '}
         In stock only
       </label>
@@ -158,9 +156,9 @@ export function CataloguePage() {
           <label className="radio-row" key={rating}>
             <input
               type="radio"
-              name="rating"
+              name={`rating-${category ? 'category' : 'all'}`}
               checked={params.get('rating') === String(rating)}
-              onChange={() => update('rating', String(rating))}
+              onChange={() => onUpdate('rating', String(rating))}
             />{' '}
             {rating}+ stars
           </label>
@@ -171,7 +169,7 @@ export function CataloguePage() {
           {categoryNames[activeCategory]} specification
           <select
             value={params.get('spec') ?? ''}
-            onChange={(event) => update('spec', event.target.value)}
+            onChange={(event) => onUpdate('spec', event.target.value)}
           >
             <option value="">Any specification</option>
             <option
@@ -194,6 +192,77 @@ export function CataloguePage() {
       )}
     </div>
   );
+}
+
+export function CataloguePage() {
+  const { category } = useParams();
+  const location = useLocation();
+  const navigate = useNavigate();
+  const params = useMemo(() => new URLSearchParams(location.search), [location.search]);
+  const activeCategory = category ?? params.get('category') ?? '';
+  const query = params.get('q') ?? '';
+  const [products, setProducts] = useState<Product[]>([]);
+  const [meta, setMeta] = useState<PageMeta>({ page: 1, pageSize: 12, total: 0, pages: 0 });
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<Error | null>(null);
+  const [mobileFilters, setMobileFilters] = useState(false);
+  const [mobileDraft, setMobileDraft] = useState<URLSearchParams | null>(null);
+  const [savedPreset, setSavedPreset] = useState(
+    () => localStorage.getItem('tm_filter_preset') ?? '',
+  );
+  const pageTitle = query
+    ? `Search: ${query}`
+    : activeCategory
+      ? categoryNames[activeCategory]
+      : 'All products';
+  useDocumentTitle(pageTitle, {
+    canonicalPath: category ? `/category/${category}` : '/products',
+    description: activeCategory
+      ? `Practise ecommerce UI testing with the ${categoryNames[activeCategory]?.toLowerCase() ?? activeCategory} catalogue, filters, sorting, product details and cart flows.`
+      : 'Explore deterministic products for practising ecommerce search, filters, sorting, product details and cart automation.',
+    noIndex: Boolean(query),
+  });
+  const update = (name: string, value?: string, append = false) => {
+    const next = new URLSearchParams(params);
+    if (!append) next.delete(name);
+    if (value) {
+      if (append) next.append(name, value);
+      else next.set(name, value);
+    }
+    if (name !== 'page') next.delete('page');
+    navigate(`${location.pathname}?${next.toString()}`);
+  };
+  const clearFilters = (source = params) => {
+    const next = new URLSearchParams(source);
+    filterKeys.forEach((key) => next.delete(key));
+    next.delete('page');
+    return next;
+  };
+  const draftUpdate = (name: string, value?: string) => {
+    setMobileDraft((current) => {
+      const next = new URLSearchParams(current ?? params);
+      next.delete(name);
+      if (value) next.set(name, value);
+      next.delete('page');
+      return next;
+    });
+  };
+  const fetchProducts = async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const apiParams = new URLSearchParams(params);
+      if (category) apiParams.set('category', category);
+      const body = await apiEnvelope<Product[]>(`/products?${apiParams}`);
+      setProducts(body.data);
+      setMeta(body.meta.pagination as PageMeta);
+    } catch (reason) {
+      setError(reason instanceof Error ? reason : new Error('Unable to load products.'));
+    } finally {
+      setLoading(false);
+    }
+  };
+  useEffect(() => void fetchProducts(), [location.search, category]); // eslint-disable-line react-hooks/exhaustive-deps
   const activeChips = [...params.entries()].filter(
     ([key, value]) => value && !['sort', 'view', 'page', 'q'].includes(key),
   );
@@ -228,14 +297,47 @@ export function CataloguePage() {
         <button
           className="button button--secondary mobile-filter-button"
           type="button"
-          onClick={() => setMobileFilters(true)}
+          onClick={() => {
+            setMobileDraft(new URLSearchParams(params));
+            setMobileFilters(true);
+          }}
         >
-          Filters
+          Filters{activeChips.length ? ` (${activeChips.length})` : ''}
         </button>
       </div>
       <div className="catalogue-layout">
         <aside className="filters" aria-label="Product filters">
-          {filters}
+          <FilterControls
+            category={category}
+            params={params}
+            onUpdate={update}
+            onColours={(values) => {
+              const next = new URLSearchParams(params);
+              next.delete('colour');
+              values.forEach((value) => next.append('colour', value));
+              next.delete('page');
+              navigate(`${location.pathname}?${next}`);
+            }}
+            onClear={() => navigate(`${location.pathname}?${clearFilters()}`)}
+          />
+          <div className="filter-presets">
+            <button
+              type="button"
+              onClick={() => {
+                const preset = [...params.entries()].filter(([key]) => filterKeys.includes(key));
+                const value = new URLSearchParams(preset).toString();
+                localStorage.setItem('tm_filter_preset', value);
+                setSavedPreset(value);
+              }}
+            >
+              Save filter preset
+            </button>
+            {savedPreset && (
+              <button type="button" onClick={() => navigate(`${location.pathname}?${savedPreset}`)}>
+                Apply saved preset
+              </button>
+            )}
+          </div>
         </aside>
         <section className="results" aria-label="Product results">
           <div className="results-toolbar">
@@ -292,6 +394,9 @@ export function CataloguePage() {
               </div>
             </div>
           </div>
+          <p className="sr-only" role="status" aria-live="polite">
+            {loading ? 'Updating product results.' : `${meta.total} products found.`}
+          </p>
           {loading ? (
             <LoadingGrid />
           ) : error ? (
@@ -301,13 +406,18 @@ export function CataloguePage() {
               title="No products found"
               message="Try removing a filter or searching with a broader term."
               action={
-                <button
-                  className="button button--secondary"
-                  type="button"
-                  onClick={() => navigate(location.pathname)}
-                >
-                  Clear filters
-                </button>
+                <div className="button-row">
+                  <button
+                    className="button button--secondary"
+                    type="button"
+                    onClick={() => navigate(`${location.pathname}?${clearFilters()}`)}
+                  >
+                    Clear filters
+                  </button>
+                  <Link className="button button--primary" to="/products?sort=rating">
+                    Browse top-rated products
+                  </Link>
+                </div>
               }
             />
           ) : (
@@ -351,14 +461,47 @@ export function CataloguePage() {
             >
               ×
             </button>
-            {filters}
-            <button
-              className="button button--primary button--full"
-              type="button"
-              onClick={() => setMobileFilters(false)}
-            >
-              Show {meta.total} products
-            </button>
+            <FilterControls
+              category={category}
+              params={mobileDraft ?? params}
+              onUpdate={draftUpdate}
+              onColours={(values) =>
+                setMobileDraft((current) => {
+                  const next = new URLSearchParams(current ?? params);
+                  next.delete('colour');
+                  values.forEach((value) => next.append('colour', value));
+                  next.delete('page');
+                  return next;
+                })
+              }
+              onClear={() => setMobileDraft(clearFilters(mobileDraft ?? params))}
+            />
+            <div className="filter-drawer__actions">
+              <button
+                className="button button--secondary"
+                type="button"
+                onClick={() => {
+                  setMobileDraft(null);
+                  setMobileFilters(false);
+                }}
+              >
+                Cancel
+              </button>
+              <button
+                className="button button--primary"
+                type="button"
+                disabled={
+                  Number((mobileDraft ?? params).get('minPrice') || 0) >
+                  Number((mobileDraft ?? params).get('maxPrice') || 150000)
+                }
+                onClick={() => {
+                  navigate(`${location.pathname}?${mobileDraft ?? params}`);
+                  setMobileFilters(false);
+                }}
+              >
+                Apply filters
+              </button>
+            </div>
           </aside>
         </div>
       )}
