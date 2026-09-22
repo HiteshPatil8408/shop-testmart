@@ -28,6 +28,8 @@ export function CartProvider({ children }: { children: ReactNode }) {
   const refresh = useCallback(async () => {
     try {
       setCart(await api<Cart>('/cart'));
+    } catch {
+      // Keep the last usable cart while a QA/network simulation is active.
     } finally {
       setLoading(false);
     }

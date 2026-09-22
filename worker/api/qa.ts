@@ -29,6 +29,8 @@ qaApi.post('/reset', async (c) => {
       );
     });
     operations.push(
+      c.env.DB.prepare('DELETE FROM review_helpful_votes WHERE user_id = ?').bind(user.id),
+      c.env.DB.prepare('DELETE FROM product_reviews WHERE user_id = ?').bind(user.id),
       c.env.DB.prepare('DELETE FROM idempotency_keys WHERE user_id = ?').bind(user.id),
       c.env.DB.prepare('DELETE FROM orders WHERE user_id = ?').bind(user.id),
     );

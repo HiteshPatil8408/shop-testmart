@@ -4,6 +4,7 @@ import type { Address, User } from '../../shared/types';
 import { useAuth } from '../app/AuthContext';
 import { useToast } from '../app/ToastContext';
 import { Modal } from '../components/Modal';
+import { ConfirmDialog } from '../components/ConfirmDialog';
 import { useDocumentTitle } from '../hooks/useDocumentTitle';
 import { api, jsonBody } from '../lib/api';
 
@@ -15,10 +16,11 @@ export function AccountPage() {
   const [addresses, setAddresses] = useState<Address[]>([]);
   const [adding, setAdding] = useState(false);
   const [pending, setPending] = useState(false);
+  const [addressToDelete, setAddressToDelete] = useState<Address | null>(null);
   const isDemoUser = user?.email.toLowerCase() === APP_CONFIG.demoEmail.toLowerCase();
   const loadAddresses = () => api<Address[]>('/addresses').then(setAddresses);
   useEffect(() => {
-    void loadAddresses();
+    void loadAddresses().catch(() => setAddresses([]));
   }, []);
   const saveProfile = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -145,6 +147,8 @@ export function AccountPage() {
             </button>
           )}
           <a href="/orders">Order history</a>
+          <a href="/returns">Returns & attachments</a>
+          <a href="/admin/orders">Demo order management</a>
         </nav>
         <section className="account-content">
           {tab === 'profile' ? (
@@ -219,19 +223,8 @@ export function AccountPage() {
                     <button
                       className="link-button danger"
                       type="button"
-                      onClick={async () => {
-                        if (!window.confirm(`Remove ${address.label}?`)) return;
-                        try {
-                          await api(`/addresses/${address.id}`, { method: 'DELETE' });
-                          await loadAddresses();
-                          toast('Address removed.', 'info');
-                        } catch (reason) {
-                          toast(
-                            reason instanceof Error ? reason.message : 'Unable to remove address.',
-                            'error',
-                          );
-                        }
-                      }}
+                      aria-label={`Remove ${address.label}`}
+                      onClick={() => setAddressToDelete(address)}
                     >
                       Remove
                     </button>
@@ -373,6 +366,22 @@ export function AccountPage() {
           </button>
         </form>
       </Modal>
+      <ConfirmDialog
+        open={Boolean(addressToDelete)}
+        title={`Delete ${addressToDelete?.label ?? 'saved address'}?`}
+        onClose={() => setAddressToDelete(null)}
+        confirmLabel="Delete address"
+        destructive
+        successMessage="The saved address was deleted."
+        onConfirm={async () => {
+          if (!addressToDelete) return;
+          await api(`/addresses/${addressToDelete.id}`, { method: 'DELETE' });
+          await loadAddresses();
+          toast('Address removed.', 'info');
+        }}
+      >
+        <p>This address will no longer be available during simulated checkout.</p>
+      </ConfirmDialog>
     </div>
   );
 }

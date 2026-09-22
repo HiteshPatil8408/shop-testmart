@@ -1,11 +1,13 @@
 import { Hono } from 'hono';
 import { accountApi } from './api/account';
+import { adminOrdersApi } from './api/adminOrders';
 import { authApi } from './api/auth';
 import { cartApi } from './api/cart';
 import { catalogue } from './api/catalogue';
 import { contactApi } from './api/contact';
 import { ordersApi } from './api/orders';
 import { qaApi } from './api/qa';
+import { reviewsApi } from './api/reviews';
 import { fail } from './lib/response';
 import { loadUser, requireUser } from './middleware/auth';
 import { protectMutations, qaSimulation, requestContext } from './middleware/security';
@@ -19,6 +21,7 @@ app.get('/api/openapi.json', (c) => c.json(openapi));
 
 const api = new Hono<AppBindings>();
 api.route('/', catalogue);
+api.route('/', reviewsApi);
 api.route('/auth', authApi);
 api.route('/cart', cartApi);
 api.route('/', contactApi);
@@ -30,6 +33,8 @@ api.route('/', accountApi);
 api.use('/checkout/*', requireUser);
 api.use('/orders*', requireUser);
 api.route('/', ordersApi);
+api.use('/admin/*', requireUser);
+api.route('/', adminOrdersApi);
 api.route('/qa', qaApi);
 
 app.route('/api/v1', api);

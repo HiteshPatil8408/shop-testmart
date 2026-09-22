@@ -1,9 +1,10 @@
 import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
-import { setQaClientConfig, type QaClientConfig } from '../lib/api';
+import { consumeQaSimulation, setQaClientConfig, type QaClientConfig } from '../lib/api';
 
 interface QaValue extends QaClientConfig {
   set: (patch: Partial<QaClientConfig>) => void;
   reset: () => void;
+  consume: (key: keyof QaClientConfig) => boolean;
 }
 
 const initial: QaClientConfig = {
@@ -14,14 +15,32 @@ const initial: QaClientConfig = {
   paymentDecline: false,
   sessionExpiry: false,
   offline: false,
+  uploadFailure: false,
+  slowUpload: false,
+  reviewSubmissionFailure: false,
+  duplicateSubmission: false,
+  serverValidation: false,
+  orderEventDelay: false,
+  orderEventDisconnection: false,
+  optimisticUpdateRejection: false,
+  emptyTable: false,
+  largeDataset: false,
+  expiredCart: false,
+  priceChanged: false,
+  stockChanged: false,
+  dateSlotUnavailable: false,
+  failureMode: 'once',
 };
 const QaContext = createContext<QaValue | null>(null);
 
 export function QaProvider({ children }: { children: ReactNode }) {
   const [config, setConfig] = useState<QaClientConfig>(() => {
     try {
-      return { ...initial, ...JSON.parse(sessionStorage.getItem('tm_qa') ?? '{}') };
+      const stored = { ...initial, ...JSON.parse(sessionStorage.getItem('tm_qa') ?? '{}') };
+      setQaClientConfig(stored);
+      return stored;
     } catch {
+      setQaClientConfig(initial);
       return initial;
     }
   });
@@ -47,6 +66,7 @@ export function QaProvider({ children }: { children: ReactNode }) {
         setQaClientConfig(initial);
         setConfig(initial);
       },
+      consume: consumeQaSimulation,
     }),
     [config],
   );

@@ -1,7 +1,15 @@
 import { calculateTotals } from '../../shared/lib/money';
 import { APP_CONFIG } from '../../shared/config';
 import { applyProductFilters } from '../../shared/lib/productFilters';
-import type { Address, ApiSuccess, Cart, OrderSummary, User } from '../../shared/types';
+import type {
+  Address,
+  AdminOrder,
+  ApiSuccess,
+  Cart,
+  OrderSummary,
+  ProductReview,
+  User,
+} from '../../shared/types';
 import { previewCategories, previewProducts } from './data';
 
 const keys = {
@@ -10,7 +18,24 @@ const keys = {
   orders: 'tm_preview_orders',
   addresses: 'tm_preview_addresses',
   account: 'tm_preview_account',
+  reviews: 'tm_preview_reviews',
 };
+
+const previewAdminOrders: AdminOrder[] = Array.from({ length: 24 }, (_, index) => ({
+  id: `80000000-0000-4000-8000-${String(index + 1).padStart(12, '0')}`,
+  orderNumber: `TM-202609${String((index % 16) + 1).padStart(2, '0')}-P${String(index + 1).padStart(7, '0')}`,
+  customerName: ['Aarav Sharma', 'Meera Iyer', 'Vivaan Patel', 'Ananya Rao'][index % 4],
+  customerEmail: `preview${index + 1}@example.test`,
+  status: ['confirmed', 'packed', 'shipped', 'out_for_delivery', 'delivered', 'cancelled'][
+    index % 6
+  ] as AdminOrder['status'],
+  paymentStatus: index % 6 === 5 ? 'refunded' : index % 7 === 0 ? 'pending' : 'paid',
+  totalPaise: 500_000 + index * 123_400,
+  itemCount: (index % 4) + 1,
+  orderDate: `2026-09-${String((index % 16) + 1).padStart(2, '0')}T09:00:00Z`,
+  channel: ['web', 'mobile', 'support'][index % 3] as AdminOrder['channel'],
+  priority: index % 4 === 1 ? 'priority' : 'normal',
+}));
 type PreviewAccount = {
   user: User;
   password: string;
@@ -92,8 +117,15 @@ export async function staticPreviewApi<T>(
       query: url.searchParams.get('q') ?? undefined,
       category: url.searchParams.get('category') ?? undefined,
       minimumRating: Number(url.searchParams.get('rating')) || undefined,
+      minimumPrice: url.searchParams.has('minPrice')
+        ? Number(url.searchParams.get('minPrice')) * 100
+        : undefined,
+      maximumPrice: url.searchParams.has('maxPrice')
+        ? Number(url.searchParams.get('maxPrice')) * 100
+        : undefined,
       inStock: url.searchParams.get('inStock') === '1',
       colours: url.searchParams.getAll('colour'),
+      specification: url.searchParams.get('spec') ?? undefined,
     });
     const sort = url.searchParams.get('sort');
     if (sort === 'price_asc') products.sort((a, b) => a.pricePaise - b.pricePaise);
@@ -108,6 +140,47 @@ export async function staticPreviewApi<T>(
     return envelope(products.slice((page - 1) * pageSize, page * pageSize), {
       pagination: { page, pageSize, total, pages: Math.ceil(total / pageSize) },
     }) as ApiSuccess<T>;
+  }
+  if (/^\/products\/[^/]+\/reviews$/.test(pathname)) {
+    const productId = pathname.split('/')[2];
+    const reviews = read<ProductReview[]>(keys.reviews, []).filter(
+      (review) => review.productId === productId,
+    );
+    const counts = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 } as Record<1 | 2 | 3 | 4 | 5, number>;
+    reviews.forEach((review) => (counts[review.rating as 1 | 2 | 3 | 4 | 5] += 1));
+    if (method === 'POST') {
+      const value = body(init);
+      const user = read<User | null>(keys.user, null);
+      if (!user) throw new Error('Sign in to write a review.');
+      const review: ProductReview = {
+        id: crypto.randomUUID(),
+        productId,
+        authorName: `${user.firstName} ${user.lastName.slice(0, 1)}.`,
+        rating: Number(value.rating),
+        title: value.title,
+        message: value.message,
+        helpfulCount: 0,
+        helpfulByMe: false,
+        isOwn: true,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      };
+      write(keys.reviews, [review, ...read<ProductReview[]>(keys.reviews, [])]);
+      return envelope({ id: review.id, created: true }) as ApiSuccess<T>;
+    }
+    return envelope(
+      {
+        reviews,
+        summary: {
+          average: reviews.length
+            ? reviews.reduce((sum, review) => sum + review.rating, 0) / reviews.length
+            : 0,
+          total: reviews.length,
+          byRating: counts,
+        },
+      },
+      { pagination: { page: 1, pageSize: 3, total: reviews.length, pages: 1 } },
+    ) as ApiSuccess<T>;
   }
   if (pathname.startsWith('/products/')) {
     const product = previewProducts.find((item) => item.slug === pathname.split('/').pop());
@@ -288,6 +361,8 @@ export async function staticPreviewApi<T>(
     return envelope({
       cart: current,
       deliveryMethod: value.deliveryMethod,
+      deliveryDate: value.deliveryDate,
+      deliveryTimeSlot: value.deliveryTimeSlot,
       totals: calculateTotals(
         current.items.map((item) => ({
           pricePaise: item.product.pricePaise,
@@ -318,6 +393,8 @@ export async function staticPreviewApi<T>(
       ...totals,
       totalPaise: totals.totalPaise,
       createdAt: new Date().toISOString(),
+      deliveryDate: value.deliveryDate,
+      deliveryTimeSlot: value.deliveryTimeSlot,
       items: current.items.map((item) => ({
         id: item.id,
         productName: item.product.name,
@@ -339,6 +416,28 @@ export async function staticPreviewApi<T>(
   }
   if (pathname === '/orders' && method === 'GET')
     return envelope(read<OrderSummary[]>(keys.orders, [])) as ApiSuccess<T>;
+  if (/^\/orders\/[^/]+\/tracking$/.test(pathname)) {
+    const orderNumber = pathname.split('/')[2];
+    const statuses = ['confirmed', 'packed', 'shipped', 'out_for_delivery', 'delivered'] as const;
+    const events = statuses.map((status, index) => ({
+      id: `${orderNumber}-${index + 1}`,
+      sequence: index + 1,
+      status,
+      label: status.replaceAll('_', ' '),
+      occurredAt: new Date(Date.UTC(2026, 8, 1, 9 + index)).toISOString(),
+    }));
+    return envelope({
+      events: [events[0], events[2], events[1], events[2], events[3], events[4]],
+    }) as ApiSuccess<T>;
+  }
+  if (/^\/orders\/[^/]+\/cancel$/.test(pathname) && method === 'POST') {
+    const orderNumber = pathname.split('/')[2];
+    const orders = read<OrderSummary[]>(keys.orders, []);
+    const order = orders.find((item) => item.orderNumber === orderNumber);
+    if (order) order.status = 'cancelled';
+    write(keys.orders, orders);
+    return envelope({ orderNumber, status: 'cancelled' }) as ApiSuccess<T>;
+  }
   if (pathname.startsWith('/orders/')) {
     const order = read<OrderSummary[]>(keys.orders, []).find(
       (item) => item.orderNumber === pathname.split('/').pop(),
@@ -351,8 +450,55 @@ export async function staticPreviewApi<T>(
       id: crypto.randomUUID(),
       message: 'Thanks — your browser-local demo message has been simulated.',
     }) as ApiSuccess<T>;
+  if (pathname === '/admin/orders' && method === 'GET') {
+    const page = Math.max(1, Number(url.searchParams.get('page')) || 1);
+    const pageSize = Number(url.searchParams.get('pageSize')) || 10;
+    const query = (url.searchParams.get('q') ?? '').toLowerCase();
+    const status = url.searchParams.get('status');
+    const rows = previewAdminOrders.filter(
+      (order) =>
+        (!query ||
+          `${order.orderNumber} ${order.customerName} ${order.customerEmail}`
+            .toLowerCase()
+            .includes(query)) &&
+        (!status || order.status === status),
+    );
+    return envelope(rows.slice((page - 1) * pageSize, page * pageSize), {
+      pagination: { page, pageSize, total: rows.length, pages: Math.ceil(rows.length / pageSize) },
+    }) as ApiSuccess<T>;
+  }
+  if (
+    pathname === '/admin/orders/bulk-status' ||
+    (pathname.startsWith('/admin/orders/') && method === 'PATCH')
+  )
+    return envelope({ simulated: true }) as ApiSuccess<T>;
+  if (pathname.startsWith('/reviews/')) {
+    const id = pathname.split('/')[2];
+    let reviews = read<ProductReview[]>(keys.reviews, []);
+    if (pathname.endsWith('/helpful')) {
+      reviews = reviews.map((review) =>
+        review.id === id
+          ? {
+              ...review,
+              helpfulByMe: !review.helpfulByMe,
+              helpfulCount: review.helpfulCount + (review.helpfulByMe ? -1 : 1),
+            }
+          : review,
+      );
+    } else if (method === 'DELETE') reviews = reviews.filter((review) => review.id !== id);
+    else if (method === 'PATCH')
+      reviews = reviews.map((review) =>
+        review.id === id
+          ? { ...review, ...body(init), updatedAt: new Date().toISOString() }
+          : review,
+      );
+    write(keys.reviews, reviews);
+    return envelope({ updated: true }) as ApiSuccess<T>;
+  }
   if (pathname === '/qa/reset') {
-    [keys.cart, keys.orders, keys.addresses].forEach((key) => localStorage.removeItem(key));
+    [keys.cart, keys.orders, keys.addresses, keys.reviews].forEach((key) =>
+      localStorage.removeItem(key),
+    );
     return envelope({ reset: true }) as ApiSuccess<T>;
   }
   throw new Error(`Static preview does not implement ${method} ${pathname}.`);

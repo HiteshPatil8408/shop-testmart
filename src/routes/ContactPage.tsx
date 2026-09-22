@@ -17,15 +17,19 @@ export function ContactPage() {
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [success, setSuccess] = useState('');
   useEffect(() => {
-    void api<Category[]>('/categories').then((items) => {
-      setCategories(items);
-      setCategoryId(items[0]?.id ?? '');
-    });
+    void api<Category[]>('/categories')
+      .then((items) => {
+        setCategories(items);
+        setCategoryId(items[0]?.id ?? '');
+      })
+      .catch(() => setCategories([]));
   }, []);
   useEffect(() => {
     const category = categories.find((item) => item.id === categoryId);
     if (category)
-      void api<Product[]>(`/products?category=${category.slug}&pageSize=24`).then(setProducts);
+      void api<Product[]>(`/products?category=${category.slug}&pageSize=24`)
+        .then(setProducts)
+        .catch(() => setProducts([]));
   }, [categoryId, categories]);
   const submit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();

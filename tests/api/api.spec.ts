@@ -299,6 +299,177 @@ test.describe('TestMart REST API', () => {
     expect((await duplicate.json()).meta.duplicate).toBe(true);
   });
 
+  test('review lifecycle, duplicate protection and helpful votes', async ({ request }) => {
+    await login(request);
+    await request.post('/api/v1/qa/reset');
+    const product = await productFixture(request);
+    const initial = await request.get(`/api/v1/products/${product.id}/reviews`);
+    expect(initial).toBeOK();
+    const initialBody = await initial.json();
+    expect(initialBody.data.summary).toMatchObject({ total: 3, average: 4 });
+    expect(initialBody.meta.pagination).toMatchObject({ page: 1, pageSize: 3, total: 3 });
+
+    const review = {
+      rating: 5,
+      title: 'Excellent automation fixture',
+      message: 'This deterministic review exercises create, update, voting and delete behavior.',
+    };
+    const created = await request.post(`/api/v1/products/${product.id}/reviews`, {
+      data: review,
+    });
+    expect(created).toBeOK();
+    const reviewId = (await created.json()).data.id;
+
+    const duplicate = await request.post(`/api/v1/products/${product.id}/reviews`, {
+      data: review,
+    });
+    expect(duplicate.status()).toBe(409);
+    expect((await duplicate.json()).error.code).toBe('REVIEW_EXISTS');
+
+    const updated = await request.patch(`/api/v1/reviews/${reviewId}`, {
+      data: {
+        rating: 4,
+        title: 'Updated automation fixture',
+        message:
+          'The edited review remains long enough to satisfy the documented validation contract.',
+      },
+    });
+    expect(updated).toBeOK();
+
+    const helpful = await request.post(
+      '/api/v1/reviews/71000000-0000-4000-8000-000000000001/helpful',
+    );
+    expect(helpful).toBeOK();
+    expect((await helpful.json()).data.helpful).toBe(true);
+    const unhelpful = await request.post(
+      '/api/v1/reviews/71000000-0000-4000-8000-000000000001/helpful',
+    );
+    expect((await unhelpful.json()).data.helpful).toBe(false);
+
+    const ownReview = await request.get(
+      `/api/v1/products/${product.id}/reviews?sort=newest&page=1`,
+    );
+    const ownReviewBody = await ownReview.json();
+    expect(ownReviewBody.data.summary.total).toBe(4);
+    expect(
+      ownReviewBody.data.reviews.some(
+        (item: { id: string; isOwn: boolean; title: string }) =>
+          item.id === reviewId && item.isOwn && item.title === 'Updated automation fixture',
+      ),
+    ).toBe(true);
+
+    expect(await request.delete(`/api/v1/reviews/${reviewId}`)).toBeOK();
+    const afterDelete = await request.get(`/api/v1/products/${product.id}/reviews`);
+    expect((await afterDelete.json()).data.summary.total).toBe(3);
+  });
+
+  test('admin order grid filtering, sorting, pagination, export and simulated updates', async ({
+    request,
+  }) => {
+    await login(request);
+    const filtered = await request.get(
+      '/api/v1/admin/orders?status=confirmed&sort=totalPaise&direction=asc&page=1&pageSize=5',
+    );
+    expect(filtered).toBeOK();
+    const body = await filtered.json();
+    expect(body.data.length).toBeGreaterThan(1);
+    expect(body.data.every((order: { status: string }) => order.status === 'confirmed')).toBe(true);
+    expect(body.meta.pagination).toMatchObject({ page: 1, pageSize: 5 });
+    expect(body.data[0].totalPaise).toBeLessThanOrEqual(body.data[1].totalPaise);
+
+    const [first, second] = body.data;
+    const rejected = await request.patch(`/api/v1/admin/orders/${first.id}`, {
+      headers: { 'X-QA-Optimistic-Reject': '1' },
+      data: { status: 'packed' },
+    });
+    expect(rejected.status()).toBe(409);
+    expect((await rejected.json()).error.code).toBe('OPTIMISTIC_UPDATE_REJECTED');
+
+    const updated = await request.patch(`/api/v1/admin/orders/${first.id}`, {
+      data: { status: 'packed' },
+    });
+    expect(updated).toBeOK();
+    expect((await updated.json()).data).toMatchObject({ status: 'packed', simulated: true });
+    const bulk = await request.post('/api/v1/admin/orders/bulk-status', {
+      data: { ids: [first.id, second.id], status: 'shipped' },
+    });
+    expect(bulk).toBeOK();
+    expect((await bulk.json()).data).toMatchObject({
+      ids: [first.id, second.id],
+      status: 'shipped',
+      simulated: true,
+    });
+
+    const empty = await request.get('/api/v1/admin/orders', {
+      headers: { 'X-QA-Empty-Table': '1' },
+    });
+    expect((await empty.json()).data).toHaveLength(0);
+    const large = await request.get('/api/v1/admin/orders?pageSize=20', {
+      headers: { 'X-QA-Large-Dataset': '1' },
+    });
+    expect((await large.json()).meta.pagination.total).toBe(240);
+
+    const csv = await request.get('/api/v1/admin/orders/export?status=confirmed');
+    expect(csv).toBeOK();
+    expect(csv.headers()['content-type']).toContain('text/csv');
+    expect(await csv.text()).toContain('"Order","Customer","Email"');
+  });
+
+  test('delivery selection, shuffled tracking events and order cancellation', async ({
+    request,
+  }) => {
+    await login(request);
+    await request.post('/api/v1/qa/reset');
+    const product = await productFixture(request);
+    await request.post('/api/v1/cart/items', {
+      data: { productId: product.id, variantId: product.variants[0].id, quantity: 1 },
+    });
+    const deliveryDate = new Date();
+    deliveryDate.setUTCHours(0, 0, 0, 0);
+    deliveryDate.setUTCDate(deliveryDate.getUTCDate() + 2);
+    while (deliveryDate.getUTCDay() === 0) deliveryDate.setUTCDate(deliveryDate.getUTCDate() + 1);
+    const placed = await request.post('/api/v1/orders', {
+      headers: { 'Idempotency-Key': `tracking-${Date.now()}` },
+      data: {
+        address: {
+          label: 'Home',
+          firstName: 'Demo',
+          lastName: 'Tester',
+          phone: '+91 90000 00000',
+          street: '101 Learning Lane',
+          city: 'Pune',
+          state: 'Maharashtra',
+          postalCode: '411001',
+          country: 'India',
+          isDefault: true,
+        },
+        deliveryMethod: 'standard',
+        deliveryDate: deliveryDate.toISOString().slice(0, 10),
+        deliveryTimeSlot: '12:00-15:00',
+        payment: { type: 'wallet' },
+      },
+    });
+    expect(placed).toBeOK();
+    const orderNumber = (await placed.json()).data.orderNumber;
+    const details = await request.get(`/api/v1/orders/${orderNumber}`);
+    expect((await details.json()).data).toMatchObject({
+      deliveryDate: deliveryDate.toISOString().slice(0, 10),
+      deliveryTimeSlot: '12:00-15:00',
+    });
+
+    const tracking = await request.get(`/api/v1/orders/${orderNumber}/tracking`);
+    expect(tracking).toBeOK();
+    expect(
+      (await tracking.json()).data.events.map((event: { sequence: number }) => event.sequence),
+    ).toEqual([1, 3, 2, 3, 4, 5]);
+    const cancelled = await request.post(`/api/v1/orders/${orderNumber}/cancel`);
+    expect(cancelled).toBeOK();
+    expect((await cancelled.json()).data.status).toBe('cancelled');
+    const cancelledAgain = await request.post(`/api/v1/orders/${orderNumber}/cancel`);
+    expect(cancelledAgain.status()).toBe(409);
+    expect((await cancelledAgain.json()).error.code).toBe('ORDER_NOT_CANCELLABLE');
+  });
+
   test('prevents unauthorized order access', async ({ request }) => {
     const response = await request.get('/api/v1/orders/TM-20260101-UNKNOWN');
     expect(response.status()).toBe(401);

@@ -4,7 +4,7 @@ export const openapi = {
   openapi: '3.1.0',
   info: {
     title: `${APP_CONFIG.name} API`,
-    version: '1.0.0',
+    version: '1.1.0',
     description: 'Same-origin ecommerce practice API. All payment processing is simulated.',
   },
   servers: [{ url: '/api/v1' }],
@@ -14,6 +14,8 @@ export const openapi = {
     { name: 'Cart' },
     { name: 'Account' },
     { name: 'Orders' },
+    { name: 'Reviews' },
+    { name: 'Admin practice' },
   ],
   paths: {
     '/categories': {
@@ -35,6 +37,44 @@ export const openapi = {
         tags: ['Catalogue'],
         summary: 'Get a product',
         responses: { '200': { description: 'Product' }, '404': { description: 'Not found' } },
+      },
+    },
+    '/products/{productId}/reviews': {
+      get: {
+        tags: ['Reviews'],
+        summary: 'List, sort, filter and paginate product reviews',
+        responses: { '200': { description: 'Reviews and star summary' } },
+      },
+      post: {
+        tags: ['Reviews'],
+        summary: 'Create one review for the signed-in user and product',
+        security: [{ sessionCookie: [] }],
+        responses: {
+          '200': { description: 'Review created' },
+          '409': { description: 'Review already exists' },
+        },
+      },
+    },
+    '/reviews/{id}': {
+      patch: {
+        tags: ['Reviews'],
+        summary: 'Edit the signed-in user review',
+        security: [{ sessionCookie: [] }],
+        responses: { '200': { description: 'Review updated' } },
+      },
+      delete: {
+        tags: ['Reviews'],
+        summary: 'Delete the signed-in user review',
+        security: [{ sessionCookie: [] }],
+        responses: { '200': { description: 'Review deleted' } },
+      },
+    },
+    '/reviews/{id}/helpful': {
+      post: {
+        tags: ['Reviews'],
+        summary: 'Toggle the signed-in user helpful vote',
+        security: [{ sessionCookie: [] }],
+        responses: { '200': { description: 'Vote toggled' } },
       },
     },
     '/search/suggestions': {
@@ -205,6 +245,57 @@ export const openapi = {
         tags: ['Orders'],
         summary: 'Get an order',
         responses: { '200': { description: 'Order' }, '404': { description: 'Not found' } },
+      },
+    },
+    '/orders/{orderNumber}/tracking': {
+      get: {
+        tags: ['Orders'],
+        summary: 'Get deterministic shuffled and duplicated tracking events',
+        security: [{ sessionCookie: [] }],
+        responses: { '200': { description: 'Tracking event fixture' } },
+      },
+    },
+    '/orders/{orderNumber}/cancel': {
+      post: {
+        tags: ['Orders'],
+        summary: 'Cancel an eligible simulated order',
+        security: [{ sessionCookie: [] }],
+        responses: {
+          '200': { description: 'Order cancelled' },
+          '409': { description: 'Order is not cancellable' },
+        },
+      },
+    },
+    '/admin/orders': {
+      get: {
+        tags: ['Admin practice'],
+        summary: 'Filter, sort and paginate deterministic demo orders',
+        security: [{ sessionCookie: [] }],
+        responses: { '200': { description: 'Admin order page' } },
+      },
+    },
+    '/admin/orders/export': {
+      get: {
+        tags: ['Admin practice'],
+        summary: 'Export filtered demo orders as CSV',
+        security: [{ sessionCookie: [] }],
+        responses: { '200': { description: 'CSV attachment' } },
+      },
+    },
+    '/admin/orders/{id}': {
+      patch: {
+        tags: ['Admin practice'],
+        summary: 'Simulate one order status update',
+        security: [{ sessionCookie: [] }],
+        responses: { '200': { description: 'Simulated status update' } },
+      },
+    },
+    '/admin/orders/bulk-status': {
+      post: {
+        tags: ['Admin practice'],
+        summary: 'Simulate a bulk order status update',
+        security: [{ sessionCookie: [] }],
+        responses: { '200': { description: 'Simulated bulk update' } },
       },
     },
     '/contact': {

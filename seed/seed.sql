@@ -137,3 +137,38 @@ INSERT OR REPLACE INTO users
 INSERT OR REPLACE INTO addresses
 (id, user_id, label, first_name, last_name, phone, street, city, state, postal_code, country, is_default) VALUES
 ('60000000-0000-4000-8000-000000000001', '50000000-0000-4000-8000-000000000001', 'Demo address', 'Demo', 'Tester', '+91 90000 00000', '101 Learning Lane', 'Pune', 'Maharashtra', '411001', 'India', 1);
+
+INSERT OR REPLACE INTO product_reviews
+(id, product_id, user_id, author_name, rating, title, message, seeded, created_at, updated_at) VALUES
+('71000000-0000-4000-8000-000000000001','10000000-0000-4000-8000-000000000001',NULL,'Priya S.',5,'Dependable all-day laptop','The keyboard is comfortable, the battery lasts through a full demo workday, and the screen stays clear indoors.',1,'2026-08-18T09:00:00Z','2026-08-18T09:00:00Z'),
+('71000000-0000-4000-8000-000000000002','10000000-0000-4000-8000-000000000001',NULL,'Arjun M.',4,'Balanced for study and work','Performance is consistent and the ports are useful. I would prefer a slightly brighter outdoor display.',1,'2026-07-12T10:30:00Z','2026-07-12T10:30:00Z'),
+('71000000-0000-4000-8000-000000000003','10000000-0000-4000-8000-000000000001',NULL,'Neha R.',3,'Good everyday machine','Setup was straightforward and the fan remains quiet, though heavier creative workloads take some patience.',1,'2026-06-08T14:20:00Z','2026-06-08T14:20:00Z'),
+('71000000-0000-4000-8000-000000000004','10000000-0000-4000-8000-000000000014',NULL,'Kabir D.',5,'Secure fit for running','The fins keep the earbuds in place and voice calls remain clear on a moderately busy street.',1,'2026-08-03T08:15:00Z','2026-08-03T08:15:00Z'),
+('71000000-0000-4000-8000-000000000005','10000000-0000-4000-8000-000000000025',NULL,'Maya K.',4,'Quiet and comfortable','Clicks are genuinely quiet and switching between devices is predictable. The shape suits medium hands best.',1,'2026-07-22T16:45:00Z','2026-07-22T16:45:00Z');
+
+INSERT OR REPLACE INTO admin_demo_orders
+(id, order_number, customer_name, customer_email, status, payment_status, total_paise, item_count, order_date, channel, priority) VALUES
+('80000000-0000-4000-8000-000000000001','TM-20260901-A1000001','Aarav Sharma','aarav@example.test','confirmed','paid',7588500,1,'2026-09-01T09:10:00Z','web','normal'),
+('80000000-0000-4000-8000-000000000002','TM-20260901-A1000002','Meera Iyer','meera@example.test','packed','paid',2840820,2,'2026-09-01T11:25:00Z','mobile','priority'),
+('80000000-0000-4000-8000-000000000003','TM-20260902-A1000003','Vivaan Patel','vivaan@example.test','shipped','paid',1060820,1,'2026-09-02T08:40:00Z','web','normal'),
+('80000000-0000-4000-8000-000000000004','TM-20260902-A1000004','Ananya Rao','ananya@example.test','out_for_delivery','paid',4720000,3,'2026-09-02T14:05:00Z','support','priority'),
+('80000000-0000-4000-8000-000000000005','TM-20260903-A1000005','Reyansh Singh','reyansh@example.test','delivered','paid',8254200,2,'2026-09-03T10:30:00Z','web','normal'),
+('80000000-0000-4000-8000-000000000006','TM-20260903-A1000006','Diya Nair','diya@example.test','cancelled','refunded',648440,1,'2026-09-03T16:55:00Z','mobile','normal'),
+('80000000-0000-4000-8000-000000000007','TM-20260904-A1000007','Aditya Joshi','aditya@example.test','confirmed','pending',1768820,1,'2026-09-04T09:15:00Z','support','priority'),
+('80000000-0000-4000-8000-000000000008','TM-20260904-A1000008','Ishita Bose','ishita@example.test','packed','paid',12999000,1,'2026-09-04T12:45:00Z','web','normal'),
+('80000000-0000-4000-8000-000000000009','TM-20260905-A1000009','Krish Verma','krish@example.test','shipped','paid',3774820,4,'2026-09-05T07:20:00Z','mobile','priority'),
+('80000000-0000-4000-8000-000000000010','TM-20260905-A1000010','Saanvi Gupta','saanvi@example.test','out_for_delivery','paid',5416200,2,'2026-09-05T13:10:00Z','web','normal'),
+('80000000-0000-4000-8000-000000000011','TM-20260906-A1000011','Arnav Kulkarni','arnav@example.test','delivered','paid',943820,1,'2026-09-06T10:05:00Z','web','normal'),
+('80000000-0000-4000-8000-000000000012','TM-20260906-A1000012','Aditi Menon','aditi@example.test','confirmed','paid',3302820,2,'2026-09-06T17:35:00Z','mobile','normal'),
+('80000000-0000-4000-8000-000000000013','TM-20260907-A1000013','Dhruv Kapoor','dhruv@example.test','packed','paid',14159820,3,'2026-09-07T08:50:00Z','web','priority'),
+('80000000-0000-4000-8000-000000000014','TM-20260907-A1000014','Riya Chatterjee','riya@example.test','shipped','paid',2122820,2,'2026-09-07T15:40:00Z','support','normal'),
+('80000000-0000-4000-8000-000000000015','TM-20260908-A1000015','Atharv Desai','atharv@example.test','out_for_delivery','paid',707640,1,'2026-09-08T09:35:00Z','mobile','normal'),
+('80000000-0000-4000-8000-000000000016','TM-20260908-A1000016','Myra Thomas','myra@example.test','delivered','paid',8494600,2,'2026-09-08T18:15:00Z','web','priority'),
+('80000000-0000-4000-8000-000000000017','TM-20260909-A1000017','Veer Malhotra','veer@example.test','cancelled','refunded',318440,1,'2026-09-09T11:00:00Z','support','normal'),
+('80000000-0000-4000-8000-000000000018','TM-20260910-A1000018','Sara Ahmed','sara@example.test','confirmed','pending',2597820,1,'2026-09-10T08:25:00Z','web','priority'),
+('80000000-0000-4000-8000-000000000019','TM-20260911-A1000019','Neil Fernandes','neil@example.test','packed','paid',6016820,3,'2026-09-11T12:20:00Z','mobile','normal'),
+('80000000-0000-4000-8000-000000000020','TM-20260912-A1000020','Tara Mukherjee','tara@example.test','shipped','paid',4716820,2,'2026-09-12T16:10:00Z','web','normal'),
+('80000000-0000-4000-8000-000000000021','TM-20260913-A1000021','Om Prakash','om@example.test','out_for_delivery','paid',2260820,1,'2026-09-13T09:45:00Z','mobile','priority'),
+('80000000-0000-4000-8000-000000000022','TM-20260914-A1000022','Kiara Jain','kiara@example.test','delivered','paid',13096820,2,'2026-09-14T14:30:00Z','web','normal'),
+('80000000-0000-4000-8000-000000000023','TM-20260915-A1000023','Rohan Pillai','rohan@example.test','confirmed','paid',530820,1,'2026-09-15T10:15:00Z','support','normal'),
+('80000000-0000-4000-8000-000000000024','TM-20260916-A1000024','Nisha Bhat','nisha@example.test','packed','paid',4324820,3,'2026-09-16T17:05:00Z','web','priority');

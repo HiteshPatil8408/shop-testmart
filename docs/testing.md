@@ -4,12 +4,16 @@
 
 - Vitest unit tests cover money and cart totals, tax/shipping, quantity and password validation,
   catalogue filters, query serialization, and API error mapping.
-- Playwright API tests exercise the running Hono/D1 application: registration, duplicates, login,
-  sessions, catalogue filters, cart merging and updates, stock checks, checkout preview, idempotent
-  order creation, authorization, contact validation, and QA reset.
-- Playwright browser tests cover the 18 requested storefront/account/checkout scenarios.
-- Axe smoke tests scan the homepage, catalogue, product detail, contact, and login pages against
-  WCAG A/AA rule tags.
+- Playwright API tests exercise the running Hono/D1 application: registration, sessions, catalogue,
+  cart/stock, checkout/idempotency, delivery, reviews, admin grid operations, tracking, cancellation,
+  authorization, contact validation, and QA reset.
+- Playwright browser tests cover the storefront regressions plus reviews, upload/retry, async
+  selection, filters/history, dialogs/focus, scheduling, data grid/board, tracking/reconnection, QA
+  simulations, UI Lab, direct refreshes and unexpected console errors.
+- Mobile tests cover navigation, staged filter drawer behavior, calendar/dialog fit, mobile order
+  cards and horizontal overflow at 390 px.
+- Axe smoke tests scan public routes plus UI Lab, returns, and admin orders against WCAG A/AA rule
+  tags.
 
 ## Commands
 
@@ -37,3 +41,11 @@ when the workflow fails.
 - Declined card: `4000 0000 0000 0002`
 - Expiry: any future month/year
 - CVV: not requested or stored
+
+## Isolation and reset
+
+The suite runs one Playwright worker because the public demo account and local D1 binding are shared.
+Tests call `POST /api/v1/qa/reset` before stateful workflows and do not depend on execution order.
+Upload files are generated in memory; no fixture is sent externally. Browser QA configuration and
+simulated admin status overrides are scoped to `sessionStorage`, so every new browser context starts
+clean. Use `npm run db:reset:local` if manual development has changed deterministic D1 data.

@@ -22,6 +22,7 @@ export function Footer() {
           <h2>Help</h2>
           <Link to="/contact">Contact</Link>
           <Link to="/api-docs">API documentation</Link>
+          <Link to="/ui-lab">UI laboratory</Link>
           <Link to="/?qa=1">QA laboratory</Link>
         </div>
         <div>

@@ -25,6 +25,7 @@ const pages = [
   { path: '/products' },
   { path: '/api-docs' },
   { path: '/contact' },
+  { path: '/ui-lab' },
   ...categories,
   ...products,
 ];

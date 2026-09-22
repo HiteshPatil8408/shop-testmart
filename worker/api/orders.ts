@@ -25,6 +25,8 @@ async function mapOrder(db: D1Database, row: any) {
     taxPaise: row.tax_paise,
     totalPaise: row.total_paise,
     createdAt: row.created_at,
+    deliveryDate: row.delivery_date,
+    deliveryTimeSlot: row.delivery_time_slot,
     items: items.results.map((item) => ({
       id: item.id,
       productName: item.product_name,
@@ -92,7 +94,35 @@ ordersApi.post('/orders', async (c) => {
   const unavailable = cart.items.find((item) => item.quantity > item.variant.stock);
   if (unavailable)
     return fail(c, 409, 'OUT_OF_STOCK', `${unavailable.product.name} no longer has enough stock.`);
-  const { address, deliveryMethod, payment } = parsed.data;
+  const { address, deliveryMethod, deliveryDate, deliveryTimeSlot, payment } = parsed.data;
+  if (Boolean(deliveryDate) !== Boolean(deliveryTimeSlot))
+    return fail(
+      c,
+      400,
+      'DELIVERY_SELECTION_INCOMPLETE',
+      'Choose both a delivery date and time slot.',
+    );
+  if (deliveryDate && deliveryTimeSlot) {
+    const today = new Date();
+    const todayUtc = Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), today.getUTCDate());
+    const selectedUtc = Date.parse(`${deliveryDate}T00:00:00Z`);
+    const minimumUtc = todayUtc + 2 * 86_400_000;
+    const offset = Math.round((selectedUtc - minimumUtc) / 86_400_000);
+    const day = new Date(selectedUtc).getUTCDay();
+    if (
+      selectedUtc < minimumUtc ||
+      selectedUtc > minimumUtc + 30 * 86_400_000 ||
+      day === 0 ||
+      offset === 4 ||
+      offset === 11
+    )
+      return fail(
+        c,
+        409,
+        'DELIVERY_SLOT_UNAVAILABLE',
+        'That delivery date is unavailable. Choose another date.',
+      );
+  }
   if (payment.type === 'card') {
     const now = new Date();
     if (payment.expiryYear === now.getUTCFullYear() && payment.expiryMonth < now.getUTCMonth() + 1)
@@ -118,7 +148,8 @@ ordersApi.post('/orders', async (c) => {
   const operations: D1PreparedStatement[] = [
     c.env.DB.prepare(
       `INSERT INTO orders (id, order_number, user_id, status, payment_status, delivery_method, delivery_address_json,
-       subtotal_paise, shipping_paise, tax_paise, total_paise) VALUES (?, ?, ?, 'confirmed', ?, ?, ?, ?, ?, ?, ?)`,
+       subtotal_paise, shipping_paise, tax_paise, total_paise, delivery_date, delivery_time_slot)
+       VALUES (?, ?, ?, 'confirmed', ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     ).bind(
       orderId,
       orderNumber,
@@ -130,6 +161,8 @@ ordersApi.post('/orders', async (c) => {
       totals.shippingPaise,
       totals.taxPaise,
       totals.totalPaise,
+      deliveryDate ?? null,
+      deliveryTimeSlot ?? null,
     ),
   ];
   cart.items.forEach((item) => {
@@ -205,4 +238,49 @@ ordersApi.get('/orders/:orderNumber', async (c) => {
     .first<any>();
   if (!row) return fail(c, 404, 'ORDER_NOT_FOUND', 'That order could not be found.');
   return ok(c, await mapOrder(c.env.DB, row));
+});
+
+ordersApi.post('/orders/:orderNumber/cancel', async (c) => {
+  const result = await c.env.DB.prepare(
+    `UPDATE orders SET status = 'cancelled', cancelled_at = CURRENT_TIMESTAMP, updated_at = CURRENT_TIMESTAMP
+     WHERE order_number = ? AND user_id = ? AND status IN ('confirmed', 'packed')`,
+  )
+    .bind(c.req.param('orderNumber'), c.get('user')!.id)
+    .run();
+  if (!result.meta.changes)
+    return fail(
+      c,
+      409,
+      'ORDER_NOT_CANCELLABLE',
+      'Only confirmed or packed demo orders can be cancelled.',
+    );
+  return ok(c, { orderNumber: c.req.param('orderNumber'), status: 'cancelled' });
+});
+
+ordersApi.get('/orders/:orderNumber/tracking', async (c) => {
+  const row = await c.env.DB.prepare(
+    'SELECT id, created_at FROM orders WHERE order_number = ? AND user_id = ?',
+  )
+    .bind(c.req.param('orderNumber'), c.get('user')!.id)
+    .first<{ id: string; created_at: string }>();
+  if (!row) return fail(c, 404, 'ORDER_NOT_FOUND', 'That order could not be found.');
+  const statuses = [
+    ['confirmed', 'Order confirmed'],
+    ['packed', 'Packed at demo warehouse'],
+    ['shipped', 'Shipped with demo courier'],
+    ['out_for_delivery', 'Out for delivery'],
+    ['delivered', 'Delivered'],
+  ] as const;
+  const base = new Date(row.created_at).getTime();
+  const events = statuses.map(([status, label], index) => ({
+    id: `${row.id}-${index + 1}`,
+    sequence: index + 1,
+    status,
+    label,
+    occurredAt: new Date(base + index * 3_600_000).toISOString(),
+  }));
+  return ok(c, {
+    // The intentionally shuffled and duplicated delivery lets clients prove idempotent ordering.
+    events: [events[0], events[2], events[1], events[2], events[3], events[4]],
+  });
 });

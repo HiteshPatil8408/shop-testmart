@@ -4,8 +4,11 @@ export interface LocalProductFilters {
   query?: string;
   category?: string;
   minimumRating?: number;
+  minimumPrice?: number;
+  maximumPrice?: number;
   inStock?: boolean;
   colours?: string[];
+  specification?: string;
 }
 
 export function applyProductFilters(products: Product[], filters: LocalProductFilters) {
@@ -13,11 +16,22 @@ export function applyProductFilters(products: Product[], filters: LocalProductFi
   return products.filter((product) => {
     if (filters.category && product.category !== filters.category) return false;
     if (filters.minimumRating && product.rating < filters.minimumRating) return false;
+    if (filters.minimumPrice !== undefined && product.pricePaise < filters.minimumPrice)
+      return false;
+    if (filters.maximumPrice !== undefined && product.pricePaise > filters.maximumPrice)
+      return false;
     if (filters.inStock && product.stock < 1) return false;
     if (
       filters.colours?.length &&
       !product.variants.some((variant) =>
         filters.colours!.some((colour) => colour.toLowerCase() === variant.colour.toLowerCase()),
+      )
+    )
+      return false;
+    if (
+      filters.specification &&
+      !product.specifications.some((item) =>
+        `${item.name} ${item.value}`.toLowerCase().includes(filters.specification!.toLowerCase()),
       )
     )
       return false;

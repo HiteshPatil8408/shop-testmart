@@ -1,4 +1,7 @@
 PRAGMA foreign_keys = OFF;
+DELETE FROM review_helpful_votes;
+DELETE FROM product_reviews;
+DELETE FROM admin_demo_orders;
 DELETE FROM payments;
 DELETE FROM order_items;
 DELETE FROM idempotency_keys;

@@ -22,6 +22,17 @@ function rateLimited(key: string, maximum = 12) {
   return recent.length > maximum;
 }
 
+function failedLoginLimited(key: string, maximum = 12) {
+  const now = Date.now();
+  const recent = (attempts.get(key) ?? []).filter((time) => now - time < 60_000);
+  attempts.set(key, recent);
+  return recent.length >= maximum;
+}
+
+function recordFailedLogin(key: string) {
+  attempts.set(key, [...(attempts.get(key) ?? []), Date.now()]);
+}
+
 authApi.post('/register', async (c) => {
   if (rateLimited(`register:${c.req.header('CF-Connecting-IP') ?? 'local'}`, 6))
     return fail(c, 429, 'RATE_LIMITED', 'Please wait before trying again.');
@@ -107,7 +118,8 @@ authApi.post('/register', async (c) => {
 
 authApi.post('/login', async (c) => {
   const ip = c.req.header('CF-Connecting-IP') ?? 'local';
-  if (rateLimited(`login:${ip}`))
+  const attemptKey = `login:${ip}`;
+  if (failedLoginLimited(attemptKey))
     return fail(c, 429, 'RATE_LIMITED', 'Please wait before trying again.');
   const parsed = loginSchema.safeParse(await c.req.json().catch(() => null));
   if (!parsed.success)
@@ -122,8 +134,10 @@ authApi.post('/login', async (c) => {
     .bind(parsed.data.email)
     .first<any>();
   if (!row || !(await verifyPassword(parsed.data.password, row.password_salt, row.password_hash))) {
+    recordFailedLogin(attemptKey);
     return fail(c, 401, 'INVALID_CREDENTIALS', 'The email or password is incorrect.');
   }
+  attempts.delete(attemptKey);
   await mergeGuestCart(c, row.id);
   await createSession(c, row.id);
   return ok(c, {

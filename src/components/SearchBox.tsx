@@ -39,6 +39,12 @@ export function SearchBox({ onNavigate }: { onNavigate?: () => void }) {
           setOpen(true);
           setActive(-1);
         }
+      } catch {
+        if (request.current === current) {
+          setSuggestions([]);
+          setOpen(true);
+          setActive(-1);
+        }
       } finally {
         if (request.current === current) setLoading(false);
       }

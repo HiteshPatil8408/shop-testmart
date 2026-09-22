@@ -24,9 +24,12 @@ include:
 - registration, login/logout, email-code password recovery, profile, saved addresses, orders, and
   protected routes
 - seven-step checkout with server totals, documented test methods, declines, and confirmation
-- contact persistence, in-app OpenAPI reference, and a session-scoped QA laboratory
+- accessible delivery calendar/time slots, product review lifecycle, returns with async multi-select
+  and browser-only upload progress
+- server-backed order-management grid and status board, simulated live tracking, and reusable dialogs
+- dedicated UI Laboratory, in-app OpenAPI reference, and an expanded session-scoped QA laboratory
 
-All product illustrations are original local SVG assets in `public/images`; tests do not depend on
+All product illustrations are original local assets in `public/images`; tests do not depend on
 third-party image availability.
 
 ## Architecture
@@ -149,7 +152,8 @@ reference, and status. Cash on delivery and demo wallet are also simulations.
 | `npm run db:seed:remote`          | Seed remote D1 intentionally                          |
 | `npm run deploy`                  | Build and deploy with Wrangler                        |
 
-See [database design](docs/database.md) and the [testing guide](docs/testing.md).
+See the [advanced automation features](docs/advanced-features.md),
+[database design](docs/database.md), and [testing guide](docs/testing.md).
 
 ## API
 
@@ -176,10 +180,12 @@ totals recalculated by the Worker; browser prices are never trusted.
 
 ## QA laboratory
 
-QA Lab is automatically available locally or can be enabled with `?qa=1`. It supports 0/500/1500/
-3000 ms latency, one-shot 400/401/403/404/409/429/500 responses, empty search, payment decline,
-offline UI, and a current-session reset. Client simulation settings are held in `sessionStorage`;
-the normal experience is deterministic when the panel is disabled.
+QA Lab is automatically available locally or can be enabled with `?qa=1`. In addition to latency,
+forced responses, empty search, low stock, payment decline, session expiry, and offline UI, it has
+deterministic upload, review, validation, order-event, optimistic-update, table, cart, catalogue and
+delivery-slot scenarios. Failures can be one-time or persistent. Settings are held in
+`sessionStorage`; reset affects only the current browser/account fixtures. The complete matrix is in
+the [advanced feature guide](docs/advanced-features.md#qa-laboratory).
 
 Prefer roles, names, labels, and visible text in Playwright. Stable test IDs exist only for the cart
 badge, product grid, price summary, toast area, loading overlay, order number, and QA controls.
